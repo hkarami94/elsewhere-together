@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Elsewhere, Together</title>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" rel="stylesheet">
+  <style>
+    /* ── Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #000;
+      color: #fff;
+      font-family: 'Archivo Black', sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      user-select: none;
+    }
+
+    /* ── Screen system ── */
+    .screen {
+      display: none;
+      width: 100vw;
+      height: 100vh;
+      position: absolute;
+      top: 0; left: 0;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .screen.active { display: flex; }
+
+    /* ── Camera corners (always on top) ── */
+    .cam-corner {
+      position: fixed;
+      bottom: 0;
+      width: 200px;
+      height: 130px;
+      background: #1a1a1a;
+      z-index: 500;
+      overflow: hidden;
+      border-top: 1px solid #333;
+    }
+    #cam-local-wrap  { left: 0;  border-right: 1px solid #333; }
+    #cam-partner-wrap{ right: 0; border-left:  1px solid #333; }
+    .cam-corner video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+    .cam-corner .cam-placeholder {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      color: #555; font-size: 13px; flex-direction: column; gap: 6px;
+    }
+    .cam-label {
+      position: absolute;
+      bottom: 4px; left: 0; right: 0;
+      text-align: center;
+      font-size: 11px;
+      background: rgba(0,0,0,.6);
+      padding: 2px 4px;
+    }
+
+    /* ── Typography helpers ── */
+    .big-title   { color: #FFE000; font-size: clamp(32px, 7vw, 88px); line-height: 1; }
+    .mid-title   { color: #FFE000; font-size: clamp(22px, 4vw, 52px); }
+    .body-text   { font-size: clamp(14px, 2.2vw, 28px); color: #fff; margin-top: 18px; max-width: 700px; line-height: 1.5; }
+    .countdown   { font-size: clamp(28px, 5vw, 64px); color: #fff; margin-top: 28px; }
+    .hint        { font-size: 14px; color: #555; margin-top: 40px; }
+    .start-hint  { font-size: clamp(14px, 2vw, 22px); color: #aaa; margin-top: 32px; animation: blink 2.5s infinite; }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+    /* ── Idle ── */
+    #screen-idle .de-hint { font-size: 15px; color: #555; margin-top: 50px; }
+
+    /* ── Waiting ── */
+    #waiting-message { font-size: clamp(16px, 2.5vw, 30px); color: #ccc; margin-top: 20px; max-width: 600px; line-height: 1.5; }
+
+    /* ── Onboarding slides ── */
+    #onboarding-slide {
+      font-size: clamp(18px, 3vw, 38px);
+      max-width: 800px;
+      padding: 0 40px;
+      line-height: 1.5;
+      opacity: 0;
+      transition: opacity 0.8s;
+    }
+    #onboarding-slide.visible { opacity: 1; }
+    #onboarding-progress { margin-top: 40px; display: flex; gap: 10px; }
+    .prog-dot { width: 10px; height: 10px; border-radius: 50%; background: #444; }
+    .prog-dot.active { background: #FFE000; }
+
+    /* ── Connection ── */
+    #connection-cam {
+      width: min(70vw, 600px);
+      height: min(50vh, 400px);
+      background: #111;
+      border: 2px solid #333;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+      margin-top: 20px;
+    }
+    #connection-cam video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+    #connection-city { font-size: 14px; color: #888; margin-top: 8px; }
+
+    /* ── Prompt ── */
+    #prompt-label { font-size: clamp(13px, 1.5vw, 18px); color: #888; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; }
+    #prompt-text  { color: #FFE000; font-size: clamp(20px, 3.5vw, 46px); max-width: 800px; line-height: 1.4; padding: 0 40px; }
+    #prompt-sub   { font-size: clamp(13px, 1.5vw, 18px); color: #aaa; margin-top: 18px; }
+
+    /* ── Drawing ── */
+    #screen-drawing {
+      flex-direction: column;
+      padding: 0;
+      justify-content: flex-start;
+    }
+    #drawing-topbar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 16px;
+      background: rgba(0,0,0,.85);
+      flex-shrink: 0;
+      min-height: 44px;
+    }
+    #drawing-prompt-text {
+      flex: 1;
+      text-align: center;
+      font-size: clamp(12px, 1.5vw, 17px);
+      color: #ddd;
+      padding: 0 16px;
+    }
+    #drawing-prompt-label { font-size: .75em; color: #888; }
+    #drawing-timer {
+      font-size: clamp(18px, 2.5vw, 28px);
+      color: #fff;
+      min-width: 70px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    #drawing-timer.urgent { color: #ff4444; animation: blink .5s infinite; }
+    #canvas-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      overflow: hidden;
+    }
+    #canvas { display: block; cursor: crosshair; touch-action: none; }
+    #drawing-bottombar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 6px 220px; /* leave space for cameras */
+      background: rgba(0,0,0,.85);
+      flex-shrink: 0;
+      min-height: 48px;
+      flex-wrap: wrap;
+    }
+    .colorBtn {
+      width: 36px;
+      height: 24px;
+      border: 2px solid #555;
+      border-radius: 4px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform .1s, border-color .1s;
+    }
+    .colorBtn:hover  { border-color: #fff; }
+    .colorBtn.active { border-color: #fff; transform: scale(1.25); }
+    .eraser-btn {
+      background: #222 !important;
+      width: 46px;
+      font-size: 16px;
+      color: #888;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .eraser-btn.active { border-color: #fff; transform: scale(1.25); color: #fff; background: #333 !important; }
+    .ctrl-label { font-size: 12px; color: #888; }
+    #thickness-preview {
+      width: 44px; height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    #thickness-dot {
+      border-radius: 50%;
+      background: #00ff00;
+      border: 1px solid rgba(255,255,255,0.25);
+      transition: width .1s, height .1s, background .15s, border-color .15s;
+    }
+
+    /* ── Gesture button strip ── */
+    .gesture-btn {
+      background: none;
+      border: 1px solid #333;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 20px;
+      padding: 2px 8px;
+      cursor: pointer;
+      transition: border-color .1s;
+    }
+    .gesture-btn:hover { border-color: #fff; }
+
+    /* ── Emoji overlay ── */
+    #emoji-layer {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      pointer-events: none;
+      z-index: 9999;
+    }
+    .emoji-bubble {
+      position: absolute;
+      font-size: 64px;
+      animation: floatUp 3s ease-out forwards;
+    }
+    @keyframes floatUp {
+      0%   { opacity: 1; transform: translateY(0)    scale(1);   }
+      100% { opacity: 0; transform: translateY(-220px) scale(1.6); }
+    }
+
+    /* ── Draw-now overlay ── */
+    #draw-now {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      color: #fff;
+      font-size: clamp(24px, 5vw, 56px);
+      pointer-events: none;
+      z-index: 9990;
+      opacity: 0;
+      transition: opacity 0.7s ease;
+      text-align: center;
+      text-shadow: 0 0 40px rgba(255,255,255,0.4);
+    }
+
+    /* ── Closure ── */
+    #closure1-count { font-size: clamp(40px, 8vw, 100px); color: #FFE000; margin-top: 20px; }
+    #closure2-canvas-img {
+      max-width: 80vw;
+      max-height: 55vh;
+      border: 2px solid #333;
+      margin-top: 20px;
+      display: block;
+    }
+    #closure2-msg { font-size: clamp(14px, 2vw, 22px); color: #ccc; margin-top: 16px; max-width: 600px; }
+  </style>
+</head>
+<body>
+
+  <!-- ── Camera corners ── -->
+  <div class="cam-corner" id="cam-local-wrap">
+    <video id="cam-local" autoplay muted playsinline></video>
+    <div class="cam-label" id="cam-local-label">You</div>
+  </div>
+  <div class="cam-corner" id="cam-partner-wrap">
+    <div class="cam-placeholder" id="cam-partner-placeholder">
+      <span style="font-size:28px">📷</span>
+      <span>Partner</span>
+    </div>
+    <video id="cam-partner-video" autoplay playsinline
+           style="display:none;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);"></video>
+    <div class="cam-label" id="cam-partner-label">Partner</div>
+  </div>
+
+  <!-- ── Emoji layer ── -->
+  <div id="emoji-layer"></div>
+
+  <!-- ── Draw-now overlay ── -->
+  <div id="draw-now">You can draw now</div>
+
+  <!-- ════════════════════════════════════════ IDLE ══ -->
+  <div class="screen active" id="screen-idle">
+    <h1 class="big-title" id="idle-title">Elsewhere, Together</h1>
+    <p class="start-hint" id="idle-msg">Welcome! Press <strong>S</strong> to connect.</p>
+    <p class="de-hint" id="idle-de">(Für Deutsch, drücke die Taste <strong>L</strong>)</p>
+  </div>
+
+  <!-- ══════════════════════════════════════ WAITING ══ -->
+  <div class="screen" id="screen-waiting">
+    <h1 class="mid-title" id="waiting-title">Elsewhere, Together</h1>
+    <p id="waiting-message"></p>
+    <p class="countdown" id="waiting-count">0:30</p>
+    <p class="hint" id="waiting-hint"></p>
+  </div>
+
+  <!-- ════════════════════════════════════ ONBOARDING ══ -->
+  <div class="screen" id="screen-onboarding">
+    <h1 class="mid-title" id="onboard-title">Elsewhere, Together</h1>
+    <p id="onboarding-slide"></p>
+    <div id="onboarding-progress"></div>
+  </div>
+
+  <!-- ════════════════════════════════════ CONNECTION ══ -->
+  <div class="screen" id="screen-connection">
+    <p class="body-text" id="connection-msg">This is your paired partner.</p>
+    <div id="connection-cam">
+      <video id="connection-video" autoplay muted playsinline></video>
+    </div>
+    <p id="connection-city" class="hint"></p>
+    <p class="body-text" id="connection-sub" style="margin-top:14px; font-size:clamp(12px,1.5vw,18px); color:#888;">Your drawing starts shortly.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════ PROMPT ══ -->
+  <div class="screen" id="screen-prompt">
+    <p id="prompt-label">You and your partner's prompt:</p>
+    <p id="prompt-text"></p>
+    <p id="prompt-sub">Please draw that together.</p>
+  </div>
+
+  <!-- ════════════════════════════════════ DRAWING ══ -->
+  <div class="screen" id="screen-drawing">
+    <div id="drawing-topbar">
+      <span style="min-width:70px"></span>
+      <div id="drawing-prompt-text">
+        <span id="drawing-prompt-label">Prompt: </span><span id="drawing-prompt-val"></span>
+      </div>
+      <div id="drawing-timer">4:00</div>
+    </div>
+    <div id="canvas-wrap">
+      <canvas id="canvas"></canvas>
+    </div>
+    <div id="drawing-bottombar">
+      <span class="ctrl-label" id="color-label">Color:</span>
+      <button class="colorBtn active" style="background:#00ff00" data-color="#00ff00" data-key="1" title="1"></button>
+      <button class="colorBtn"        style="background:#0000ff" data-color="#0000ff" data-key="2" title="2"></button>
+      <button class="colorBtn"        style="background:#ff00ff" data-color="#ff00ff" data-key="3" title="3"></button>
+      <button class="colorBtn"        style="background:#ffff00" data-color="#ffff00" data-key="4" title="4"></button>
+      <button class="colorBtn"        style="background:#ff0000" data-color="#ff0000" data-key="5" title="5"></button>
+      <button class="colorBtn"        style="background:#ff8800" data-color="#ff8800" data-key="6" title="6"></button>
+      <button class="colorBtn"        style="background:#ffffff; border-color:#888" data-color="#ffffff" data-key="7" title="7"></button>
+      <button class="colorBtn eraser-btn" data-color="#000000" data-key="8" title="Eraser (8)">✕</button>
+      <span style="width:1px; background:#333; height:24px; margin:0 6px; align-self:center;"></span>
+      <span class="ctrl-label" id="thickness-label">Thick:</span>
+      <div id="thickness-preview"><div id="thickness-dot"></div></div>
+      <span style="width:1px; background:#333; height:24px; margin:0 6px; align-self:center;"></span>
+      <button class="gesture-btn" data-gesture="like"    title="G = Like">👍</button>
+      <button class="gesture-btn" data-gesture="dislike" title="H = Dislike">👎</button>
+      <button class="gesture-btn" data-gesture="love"    title="J = Love">❤️</button>
+      <span style="width:1px; background:#333; height:24px; margin:0 6px; align-self:center;"></span>
+      <button id="resetBtn" style="background:none;border:1px solid #444;color:#aaa;font-family:inherit;font-size:12px;padding:4px 10px;cursor:pointer;border-radius:4px;" title="R = Reset my drawing">↺ <span id="reset-label">Reset</span></button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════ CLOSURE 1 ══ -->
+  <div class="screen" id="screen-closure1">
+    <p class="body-text" id="closure1-msg1">Time is up! We want to take your picture in</p>
+    <p id="closure1-count">10</p>
+    <p class="body-text" id="closure1-msg2">seconds.<br>If you don't want your picture saved, please go out of frame.<br><em id="closure1-msg3">Otherwise, smile!</em></p>
+  </div>
+
+  <!-- ════════════════════════════════════ CLOSURE 2 ══ -->
+  <div class="screen" id="screen-closure2">
+    <p class="mid-title" id="closure2-title">Elsewhere, Together</p>
+    <img id="closure2-canvas-img" src="" alt="Your shared drawing" />
+    <p id="closure2-msg">This drawing is complete and will be added to the archive.<br>Today the two of you, together, created a piece of art — changing the meaning of distance!</p>
+  </div>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+  // ── Language strings ──────────────────────────────────────────────────────
+  const LANG = {
+    en: {
+      idleMsg:          'Welcome! Press <strong>S</strong> to connect.',
+      idleDe:           '(Für Deutsch, drücke die Taste <strong>L</strong>)',
+      waitingInitiator: 'Waiting for someone to join...',
+      waitingResponder: 'Someone is waiting for you.<br>Press <strong>S</strong> to connect.',
+      waitingHint:      '',
+      onboardSlides: [
+        'Welcome to <strong>Elsewhere, Together!</strong> This is an interactive installation, connecting you to a stranger in another city — making it possible to draw together in real time.',
+        'The person you are seeing is seeing the same content as you.',
+        'Shortly, you will see a prompt. Try to draw it together with your paired partner within the time limit.',
+        'For drawing, grab the pointer and move your hand to guide the line. <strong>Hold the button to draw.</strong>',
+        'During drawing, you can change your color, adjust brush thickness, reset your drawing, and share your feelings using these 3 gestures: 👍 👎 ❤️'
+      ],
+      connectionMsg:  'This is your paired partner.',
+      connectionSub:  'Your drawing starts shortly.',
+      promptLabel:    'You and your partner\'s prompt:',
+      promptSub:      'Please draw that together.',
+      drawingPromptLabel: 'Prompt: ',
+      colorLabel:     'Color:',
+      thickLabel:     'Thick:',
+      resetLabel:     'Reset',
+      closure1Msg1:   'Time is up! We want to take your picture in',
+      closure1Msg2:   'seconds.<br>If you don\'t want your picture saved, please go out of frame.',
+      closure1Msg3:   'Otherwise, smile!',
+      closure2Title:  'Elsewhere, Together',
+      closure2Msg:    'This drawing is complete and will be added to the archive.<br>Today the two of you, together, created a piece of art — changing the meaning of distance!',
+      camLabel:       'You',
+      partnerLabel:   'Partner',
+    },
+    de: {
+      idleMsg:          'Willkommen! Drücke <strong>S</strong> zum Verbinden.',
+      idleDe:           '(For English, press <strong>L</strong>)',
+      waitingInitiator: 'Warte darauf, dass jemand beitritt...',
+      waitingResponder: 'Jemand wartet auf dich.<br>Drücke <strong>S</strong> zum Verbinden.',
+      waitingHint:      '',
+      onboardSlides: [
+        'Willkommen bei <strong>Elsewhere, Together!</strong> Das ist eine interaktive Installation, die dich mit einer fremden Person in einer anderen Stadt verbindet — um gemeinsam in Echtzeit zu zeichnen.',
+        'Die Person, die du siehst, sieht dasselbe wie du.',
+        'Gleich siehst du einen Prompt. Versuche, ihn gemeinsam mit deiner Partnerin oder deinem Partner innerhalb der Zeit zu zeichnen.',
+        'Zum Zeichnen nimm den Pointer und bewege deine Hand. <strong>Halte die Taste gedrückt, um zu zeichnen.</strong>',
+        'Während des Zeichnens kannst du Farbe wechseln, Pinselstärke anpassen, deine Zeichnung zurücksetzen und Gefühle mit 3 Gesten ausdrücken: 👍 👎 ❤️'
+      ],
+      connectionMsg:  'Das ist dein Partner.',
+      connectionSub:  'Dein Zeichnen beginnt gleich.',
+      promptLabel:    'Dein gemeinsamer Prompt:',
+      promptSub:      'Bitte zeichnet das zusammen.',
+      drawingPromptLabel: 'Prompt: ',
+      colorLabel:     'Farbe:',
+      thickLabel:     'Stärke:',
+      resetLabel:     'Zurücksetzen',
+      closure1Msg1:   'Zeit abgelaufen! Wir möchten euch in',
+      closure1Msg2:   'Sekunden fotografieren.<br>Wenn du nicht im Bild sein möchtest, geh bitte aus dem Bild.',
+      closure1Msg3:   'Ansonsten: lächeln!',
+      closure2Title:  'Elsewhere, Together',
+      closure2Msg:    'Diese Zeichnung ist fertig und wird dem Archiv hinzugefügt.<br>Heute habt ihr zwei zusammen ein Kunstwerk erschaffen — und den Begriff Entfernung neu definiert!',
+      camLabel:       'Du',
+      partnerLabel:   'Partner',
+    }
+  };
+
+  let lang = 'en';
+  function t(key) { return LANG[lang][key] || LANG.en[key]; }
+
+  function applyLanguage() {
+    document.getElementById('idle-msg').innerHTML   = t('idleMsg');
+    document.getElementById('idle-de').innerHTML    = t('idleDe');
+    document.getElementById('cam-local-label').textContent   = t('camLabel');
+    document.getElementById('cam-partner-label').textContent = t('partnerLabel');
+    document.getElementById('color-label').textContent       = t('colorLabel');
+    document.getElementById('thickness-label').textContent   = t('thickLabel');
+    document.getElementById('reset-label').textContent       = t('resetLabel');
+    document.getElementById('drawing-prompt-label').textContent = t('drawingPromptLabel');
+    document.getElementById('prompt-label').textContent      = t('promptLabel');
+    document.getElementById('prompt-sub').textContent        = t('promptSub');
+    document.getElementById('connection-msg').textContent    = t('connectionMsg');
+    document.getElementById('connection-sub').textContent    = t('connectionSub');
+    document.getElementById('closure1-msg1').textContent     = t('closure1Msg1');
+    document.getElementById('closure1-msg2').innerHTML       = t('closure1Msg2');
+    document.getElementById('closure1-msg3').textContent     = t('closure1Msg3');
+    document.getElementById('closure2-title').textContent    = t('closure2Title');
+    document.getElementById('closure2-msg').innerHTML        = t('closure2Msg');
+    if (currentPrompt) showCurrentPrompt();
+  }
+
+  // ── Screen switcher ───────────────────────────────────────────────────────
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+  }
+
+  // ── Webcam ────────────────────────────────────────────────────────────────
+  async function startCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      document.getElementById('cam-local').srcObject = stream;
+    } catch (e) {
+      console.warn('Camera not available:', e.message);
+    }
+  }
+  startCamera();
+
+  // ── Sound (Web Audio API) ─────────────────────────────────────────────────
+  let _ac = null;
+  function ac() {
+    if (!_ac) _ac = new (window.AudioContext || window.webkitAudioContext)();
+    return _ac;
+  }
+  function _note(freq, dur, vol = 0.28, type = 'sine') {
+    const ctx = ac(), osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.connect(g); g.connect(ctx.destination);
+    osc.type = type; osc.frequency.value = freq;
+    g.gain.setValueAtTime(vol, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+    osc.start(); osc.stop(ctx.currentTime + dur);
+  }
+  const SFX = {
+    connect() { _note(523, 0.14); setTimeout(() => _note(784, 0.22), 160); },
+    like()    { _note(880, 0.09, 0.2); setTimeout(() => _note(1108, 0.18, 0.17), 100); },
+    dislike() { _note(330, 0.09, 0.2); setTimeout(() => _note(220,  0.2,  0.17), 100); },
+    love()    { _note(523, 0.32, 0.17); _note(659, 0.32, 0.14); _note(784, 0.32, 0.13); },
+    tick()    { _note(1200, 0.04, 0.11, 'square'); },
+    shutter() {
+      const a = ac(), buf = a.createBuffer(1, Math.floor(a.sampleRate * 0.07), a.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      const src = a.createBufferSource(), g = a.createGain();
+      src.buffer = buf; src.connect(g); g.connect(a.destination);
+      g.gain.setValueAtTime(0.35, a.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 0.07);
+      src.start(); src.stop(a.currentTime + 0.07);
+    }
+  };
+
+  // ── WebRTC (partner camera) ───────────────────────────────────────────────
+  let peerConn = null;
+
+  function closePeer() {
+    if (peerConn) { peerConn.close(); peerConn = null; }
+    const v = document.getElementById('cam-partner-video');
+    v.srcObject = null; v.style.display = 'none';
+    document.getElementById('cam-partner-placeholder').style.display = 'flex';
+    document.getElementById('connection-video').srcObject = null;
+  }
+
+  async function setupPeer(isInitiator) {
+    closePeer();
+    try {
+      peerConn = new RTCPeerConnection({ iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'turn:openrelay.metered.ca:80',  username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+      ]});
+
+      const local = document.getElementById('cam-local');
+      if (local.srcObject) local.srcObject.getTracks().forEach(t => peerConn.addTrack(t, local.srcObject));
+
+      peerConn.ontrack = (e) => {
+        const v = document.getElementById('cam-partner-video');
+        v.srcObject = e.streams[0];
+        v.style.display = 'block';
+        document.getElementById('cam-partner-placeholder').style.display = 'none';
+        document.getElementById('connection-video').srcObject = e.streams[0];
+      };
+
+      peerConn.onicecandidate = (e) => { if (e.candidate) socket.emit('webrtc-ice', e.candidate); };
+
+      if (isInitiator) {
+        const offer = await peerConn.createOffer();
+        await peerConn.setLocalDescription(offer);
+        socket.emit('webrtc-offer', offer);
+      }
+    } catch (err) { console.warn('WebRTC setup failed:', err.message); }
+  }
+
+  // ── Socket ────────────────────────────────────────────────────────────────
+  const socket = io();
+  let currentPrompt = null;
+  let drawingTimerInterval = null;
+  let countdownInterval    = null;
+  let waitingRole = 'responder';
+
+  socket.on('full', () => {
+    alert('Two participants are already connected. Close one tab and try again.');
+  });
+
+  // ── Phase handler ─────────────────────────────────────────────────────────
+  socket.on('phase', (data) => {
+    clearAllTimers();
+    const { phase, prompt, role } = data;
+    if (prompt) currentPrompt = prompt;
+
+    switch (phase) {
+      case 'idle':      enterIdle();              break;
+      case 'waiting':   enterWaiting(role);        break;
+      case 'onboarding':
+        enterOnboarding();
+        SFX.connect();
+        setupPeer(waitingRole === 'initiator');
+        break;
+      case 'connection':enterConnection();         break;
+      case 'prompt':    enterPrompt();             break;
+      case 'drawing':   enterDrawing();            break;
+      case 'closure1':  enterClosure1();           break;
+      case 'closure2':  enterClosure2();           break;
+    }
+  });
+
+  socket.on('partner-waiting', () => {
+    clearAllTimers();
+    enterWaiting('responder');
+  });
+
+  // ── Idle ──────────────────────────────────────────────────────────────────
+  function enterIdle() {
+    applyLanguage();
+    showScreen('idle');
+    strokes = [];
+    clearCanvas();
+    closePeer();
+  }
+
+  // ── Waiting ───────────────────────────────────────────────────────────────
+  function enterWaiting(role) {
+    waitingRole = role || 'responder';
+    showScreen('waiting');
+    const msgEl = document.getElementById('waiting-message');
+    if (waitingRole === 'initiator') {
+      msgEl.innerHTML = t('waitingInitiator');
+    } else {
+      msgEl.innerHTML = t('waitingResponder');
+    }
+    startCountdown('waiting-count', 30, () => {});
+  }
+
+  // ── Onboarding slides ─────────────────────────────────────────────────────
+  const SLIDE_DURATIONS = [10000, 8000, 8000, 8000, 6000];
+
+  function enterOnboarding() {
+    showScreen('onboarding');
+    const slides = t('onboardSlides');
+    const el = document.getElementById('onboarding-slide');
+    const prog = document.getElementById('onboarding-progress');
+
+    // Build progress dots
+    prog.innerHTML = slides.map((_, i) => `<div class="prog-dot" id="dot-${i}"></div>`).join('');
+
+    let idx = 0;
+    function showSlide(i) {
+      if (i >= slides.length) return;
+      el.classList.remove('visible');
+      setTimeout(() => {
+        el.innerHTML = slides[i];
+        el.classList.add('visible');
+        document.querySelectorAll('.prog-dot').forEach((d, j) => d.classList.toggle('active', j === i));
+      }, 200);
+      if (i + 1 < slides.length) {
+        countdownInterval = setTimeout(() => showSlide(i + 1), SLIDE_DURATIONS[i]);
+      }
+    }
+    showSlide(0);
+  }
+
+  // ── Connection ────────────────────────────────────────────────────────────
+  function enterConnection() {
+    showScreen('connection');
+  }
+
+  // ── Prompt ────────────────────────────────────────────────────────────────
+  function enterPrompt() {
+    showScreen('prompt');
+    showCurrentPrompt();
+  }
+
+  function showCurrentPrompt() {
+    if (!currentPrompt) return;
+    document.getElementById('prompt-text').textContent = currentPrompt[lang] || currentPrompt.en;
+    document.getElementById('drawing-prompt-val').textContent = currentPrompt[lang] || currentPrompt.en;
+  }
+
+  // ── Drawing ───────────────────────────────────────────────────────────────
+  function enterDrawing() {
+    showScreen('drawing');
+    showCurrentPrompt();
+    resizeCanvas();
+    startDrawingTimer(240);
+
+    const dn = document.getElementById('draw-now');
+    dn.textContent = lang === 'de' ? 'Du kannst jetzt zeichnen' : 'You can draw now';
+    dn.style.opacity = '1';
+    setTimeout(() => { dn.style.opacity = '0'; }, 1500);
+  }
+
+  function startDrawingTimer(seconds) {
+    let remaining = seconds;
+    updateTimerDisplay(remaining);
+    drawingTimerInterval = setInterval(() => {
+      remaining--;
+      updateTimerDisplay(remaining);
+      if (remaining <= 12) {
+        document.getElementById('drawing-timer').classList.add('urgent');
+        SFX.tick();
+      }
+      if (remaining <= 0) clearInterval(drawingTimerInterval);
+    }, 1000);
+  }
+
+  function updateTimerDisplay(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    document.getElementById('drawing-timer').textContent = m + ':' + String(s).padStart(2, '0');
+  }
+
+  // ── Closure I ─────────────────────────────────────────────────────────────
+  function enterClosure1() {
+    clearInterval(drawingTimerInterval);
+    document.getElementById('drawing-timer').classList.remove('urgent');
+    showScreen('closure1');
+    startCountdown('closure1-count', 10, () => {});
+  }
+
+  // ── Closure II ────────────────────────────────────────────────────────────
+  function enterClosure2() {
+    showScreen('closure2');
+    const img = document.getElementById('closure2-canvas-img');
+    img.src = canvas.toDataURL('image/png');
+    SFX.shutter();
+  }
+
+  // ── Countdown helper ──────────────────────────────────────────────────────
+  function startCountdown(elId, seconds, onDone) {
+    let remaining = seconds;
+    document.getElementById(elId).textContent = remaining;
+    countdownInterval = setInterval(() => {
+      remaining--;
+      document.getElementById(elId).textContent = remaining;
+      if (remaining <= 0) { clearInterval(countdownInterval); onDone(); }
+    }, 1000);
+  }
+
+  function clearAllTimers() {
+    clearInterval(drawingTimerInterval);
+    clearInterval(countdownInterval);
+    clearTimeout(countdownInterval);
+    drawingTimerInterval = null;
+    countdownInterval = null;
+  }
+
+  // ── Canvas drawing ────────────────────────────────────────────────────────
+  const canvas = document.getElementById('canvas');
+  const ctx    = canvas.getContext('2d');
+
+  let strokes      = [];       // [{strokeId, x0,y0,x1,y1,color,width,owner}]
+  let isDrawing    = false;
+  let lastX        = 0;
+  let lastY        = 0;
+  let currentColor = '#00ff00';
+  let currentWidth = 4;
+  let strokeIdCounter  = 0;
+  let currentStrokeId  = null;
+
+  const THICKNESS_MIN = 1;
+  const THICKNESS_MAX = 30;
+
+  function resizeCanvas() {
+    const topH    = document.getElementById('drawing-topbar').offsetHeight;
+    const bottomH = document.getElementById('drawing-bottombar').offsetHeight;
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight - topH - bottomH;
+    redrawAll(); // also fills white background
+  }
+
+  window.addEventListener('resize', () => {
+    if (document.getElementById('screen-drawing').classList.contains('active')) resizeCanvas();
+  });
+
+  // Remote segments: fill a circle at the joint to cover the previous end-cap
+  function drawSegment(seg) {
+    const x0 = seg.x0 * canvas.width,  y0 = seg.y0 * canvas.height;
+    const x1 = seg.x1 * canvas.width,  y1 = seg.y1 * canvas.height;
+    ctx.save();
+    ctx.strokeStyle = seg.color;
+    ctx.fillStyle   = seg.color;
+    ctx.lineWidth   = seg.width;
+    ctx.lineCap  = 'round';
+    ctx.lineJoin = 'round';
+    // Circle at the start fills in the gap between consecutive segments
+    ctx.beginPath();
+    ctx.arc(x0, y0, seg.width / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x1, y1);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Full redraw: group by strokeId → one continuous path per stroke (smooth)
+  function redrawAll() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const groupMap = new Map();
+    const order    = [];
+    for (const seg of strokes) {
+      const id = seg.strokeId || (seg.owner + '_' + seg.x0.toFixed(6));
+      if (!groupMap.has(id)) {
+        groupMap.set(id, { color: seg.color, width: seg.width, pts: [{ x: seg.x0, y: seg.y0 }] });
+        order.push(id);
+      }
+      groupMap.get(id).pts.push({ x: seg.x1, y: seg.y1 });
+    }
+
+    for (const id of order) {
+      const g = groupMap.get(id);
+      ctx.save();
+      ctx.strokeStyle = g.color;
+      ctx.lineWidth   = g.width;
+      ctx.lineCap  = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(g.pts[0].x * canvas.width, g.pts[0].y * canvas.height);
+      for (let i = 1; i < g.pts.length; i++) {
+        ctx.lineTo(g.pts[i].x * canvas.width, g.pts[i].y * canvas.height);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // If a stroke is in progress, restart the open path so drawing can continue
+    if (isDrawing && currentStrokeId) {
+      ctx.strokeStyle = currentColor;
+      ctx.lineWidth   = currentWidth;
+      ctx.lineCap  = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(lastX * canvas.width, lastY * canvas.height);
+    }
+  }
+
+  function clearCanvas() {
+    strokes = [];
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  // Local drawing — single continuous open path from mousedown to mouseup
+  canvas.addEventListener('mousedown', (e) => {
+    isDrawing = true;
+    strokeIdCounter++;
+    currentStrokeId = socket.id + '_' + strokeIdCounter;
+    lastX = e.offsetX / canvas.width;
+    lastY = e.offsetY / canvas.height;
+
+    ctx.strokeStyle = currentColor;
+    ctx.lineWidth   = currentWidth;
+    ctx.lineCap  = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(e.offsetX, e.offsetY);
+  });
+
+  canvas.addEventListener('mousemove', (e) => {
+    if (!isDrawing) return;
+
+    const x1 = e.offsetX / canvas.width;
+    const y1 = e.offsetY / canvas.height;
+
+    const seg = {
+      strokeId: currentStrokeId,
+      x0: lastX, y0: lastY,
+      x1, y1,
+      color: currentColor,
+      width: currentWidth,
+      owner: socket.id
+    };
+    strokes.push(seg);
+    socket.emit('draw', seg);
+
+    // Extend the open path — no new beginPath means no isolated end-caps at joints
+    ctx.lineTo(e.offsetX, e.offsetY);
+    ctx.stroke();
+
+    lastX = x1;
+    lastY = y1;
+  });
+
+  canvas.addEventListener('mouseup',    () => { isDrawing = false; currentStrokeId = null; });
+  canvas.addEventListener('mouseleave', () => { isDrawing = false; currentStrokeId = null; });
+
+  socket.on('draw', (seg) => { strokes.push(seg); drawSegment(seg); });
+  socket.on('clear-owner', (data) => {
+    strokes = strokes.filter(s => s.owner !== data.owner);
+    redrawAll();
+  });
+  socket.on('strokes-sync', (all) => { strokes = all; redrawAll(); });
+
+  // ── WebRTC signalling ─────────────────────────────────────────────────────
+  socket.on('webrtc-offer', async (offer) => {
+    try {
+      if (!peerConn) await setupPeer(false);
+      await peerConn.setRemoteDescription(offer);
+      const answer = await peerConn.createAnswer();
+      await peerConn.setLocalDescription(answer);
+      socket.emit('webrtc-answer', answer);
+    } catch (err) { console.warn('WebRTC offer handling failed:', err.message); }
+  });
+
+  socket.on('webrtc-answer', async (answer) => {
+    try { if (peerConn) await peerConn.setRemoteDescription(answer); }
+    catch (err) { console.warn('WebRTC answer handling failed:', err.message); }
+  });
+
+  socket.on('webrtc-ice', async (candidate) => {
+    try { if (peerConn) await peerConn.addIceCandidate(candidate); }
+    catch (err) { /* stale candidate, ignore */ }
+  });
+
+  // ── Color buttons ─────────────────────────────────────────────────────────
+  function setColor(color) {
+    currentColor = color;
+    document.querySelectorAll('.colorBtn').forEach(b => {
+      b.classList.toggle('active', b.dataset.color === color);
+    });
+    const dot = document.getElementById('thickness-dot');
+    if (!dot) return;
+    dot.style.background    = color;
+    dot.style.borderColor   = color === '#000000'
+      ? 'rgba(255,255,255,0.5)'   // eraser: visible outline on black canvas
+      : 'rgba(255,255,255,0.25)';
+  }
+
+  document.querySelectorAll('.colorBtn').forEach(btn => {
+    btn.addEventListener('click', () => setColor(btn.dataset.color));
+  });
+
+  // ── Thickness display ─────────────────────────────────────────────────────
+  function setThickness(val) {
+    currentWidth = Math.max(THICKNESS_MIN, Math.min(THICKNESS_MAX, val));
+    const dot = document.getElementById('thickness-dot');
+    if (!dot) return;
+    dot.style.width  = currentWidth + 'px';
+    dot.style.height = currentWidth + 'px';
+  }
+  setThickness(4);
+
+  // ── Reset button ──────────────────────────────────────────────────────────
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    socket.emit('clear-my-drawing');
+  });
+
+  // ── Toast helper ──────────────────────────────────────────────────────────
+  function showToast(msg, duration = 2000) {
+    let t = document.getElementById('toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'toast';
+      Object.assign(t.style, {
+        position:'fixed', bottom:'90px', left:'50%', transform:'translateX(-50%)',
+        background:'rgba(255,255,255,.15)', color:'#fff', padding:'8px 20px',
+        borderRadius:'20px', fontSize:'14px', fontFamily:'inherit',
+        zIndex:'9998', transition:'opacity .3s', pointerEvents:'none'
+      });
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    setTimeout(() => { t.style.opacity = '0'; }, duration);
+  }
+
+  // ── Gesture buttons ───────────────────────────────────────────────────────
+  document.querySelectorAll('.gesture-btn').forEach(btn => {
+    btn.addEventListener('click', () => socket.emit('gesture', { type: btn.dataset.gesture }));
+  });
+
+  const GESTURE_EMOJI = { like: '👍', dislike: '👎', love: '❤️' };
+
+  socket.on('gesture', (data) => {
+    spawnEmoji(GESTURE_EMOJI[data.type] || '✨');
+    if (data.type === 'like') SFX.like();
+    else if (data.type === 'dislike') SFX.dislike();
+    else if (data.type === 'love') SFX.love();
+  });
+
+  function spawnEmoji(char) {
+    const el = document.createElement('div');
+    el.className = 'emoji-bubble';
+    el.textContent = char;
+    el.style.left = (20 + Math.random() * 60) + 'vw';
+    el.style.bottom = '180px';
+    document.getElementById('emoji-layer').appendChild(el);
+    setTimeout(() => el.remove(), 3100);
+  }
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  const COLOR_KEYS = {
+    '1': '#00ff00', '2': '#0000ff', '3': '#ff00ff', '4': '#ffff00',
+    '5': '#ff0000', '6': '#ff8800', '7': '#ffffff',   '8': '#000000'
+  };
+
+  document.addEventListener('keydown', (e) => {
+    const key = e.key.toLowerCase();
+    const active = document.querySelector('.screen.active')?.id;
+
+    // Start / join
+    if (key === 's') { socket.emit('start'); return; }
+
+    // Language toggle
+    if (key === 'l') {
+      lang = lang === 'en' ? 'de' : 'en';
+      applyLanguage();
+      // Re-enter current screen text
+      const a = document.querySelector('.screen.active')?.id;
+      if (a === 'screen-waiting') enterWaiting(waitingRole);
+      if (a === 'screen-onboarding') enterOnboarding();
+      return;
+    }
+
+    // Drawing-only controls
+    if (active !== 'screen-drawing') return;
+
+    if (COLOR_KEYS[key]) { setColor(COLOR_KEYS[key]); return; }
+    if (key === 'arrowup')   { setThickness(currentWidth + 2); return; }
+    if (key === 'arrowdown') { setThickness(currentWidth - 2); return; }
+    if (key === 'r') { socket.emit('clear-my-drawing'); return; }
+    if (key === 'g') { socket.emit('gesture', { type: 'like' });    return; }
+    if (key === 'h') { socket.emit('gesture', { type: 'dislike' }); return; }
+    if (key === 'j') { socket.emit('gesture', { type: 'love' });    return; }
+  });
+
+  // Initial language apply
+  applyLanguage();
+  </script>
+</body>
+</html>

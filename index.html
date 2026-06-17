@@ -460,13 +460,6 @@
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       document.getElementById('cam-local').srcObject = stream;
-      // If peer-ready fired before camera was ready, add tracks now
-      if (peerConn) {
-        const senders = peerConn.getSenders();
-        stream.getTracks().forEach(t => {
-          if (!senders.find(s => s.track === t)) peerConn.addTrack(t, stream);
-        });
-      }
     } catch (e) {
       console.warn('Camera not available:', e.message);
     }
@@ -531,6 +524,18 @@
     document.getElementById('connection-video').srcObject = null;
   }
 
+  // Wait up to 8s for getUserMedia to resolve, then proceed with or without camera
+  function waitForCamera() {
+    const vid = document.getElementById('cam-local');
+    if (vid.srcObject) return Promise.resolve(vid.srcObject);
+    return new Promise(resolve => {
+      const iv = setInterval(() => {
+        if (vid.srcObject) { clearInterval(iv); clearTimeout(to); resolve(vid.srcObject); }
+      }, 100);
+      const to = setTimeout(() => { clearInterval(iv); resolve(null); }, 8000);
+    });
+  }
+
   async function setupPeer(isInitiator) {
     if (peerConn && ['new','connecting','connected'].includes(peerConn.connectionState)) return;
     closePeer();
@@ -543,9 +548,6 @@
         { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
       ]});
 
-      const local = document.getElementById('cam-local');
-      if (local.srcObject) local.srcObject.getTracks().forEach(t => peerConn.addTrack(t, local.srcObject));
-
       peerConn.ontrack = (e) => {
         const v = document.getElementById('cam-partner-video');
         v.srcObject = e.streams[0];
@@ -556,6 +558,10 @@
       };
 
       peerConn.onicecandidate = (e) => { if (e.candidate) socket.emit('webrtc-ice', e.candidate); };
+
+      // Wait for camera, then add tracks and (if initiator) send offer
+      const stream = await waitForCamera();
+      if (stream) stream.getTracks().forEach(t => peerConn.addTrack(t, stream));
 
       if (isInitiator) {
         const offer = await peerConn.createOffer();
@@ -968,16 +974,15 @@
   socket.on('webrtc-offer', async (offer) => {
     try {
       if (!peerConn) await setupPeer(false);
-      // Add local tracks before answering — handles race where getUserMedia
-      // hadn't resolved yet when peer-ready fired
-      const local = document.getElementById('cam-local');
-      if (local.srcObject) {
+      await peerConn.setRemoteDescription(offer);
+      // Wait for camera then add tracks before answering
+      const stream = await waitForCamera();
+      if (stream) {
         const senders = peerConn.getSenders();
-        local.srcObject.getTracks().forEach(t => {
-          if (!senders.find(s => s.track === t)) peerConn.addTrack(t, local.srcObject);
+        stream.getTracks().forEach(t => {
+          if (!senders.find(s => s.track === t)) peerConn.addTrack(t, stream);
         });
       }
-      await peerConn.setRemoteDescription(offer);
       const answer = await peerConn.createAnswer();
       await peerConn.setLocalDescription(answer);
       socket.emit('webrtc-answer', answer);

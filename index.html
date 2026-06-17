@@ -500,6 +500,21 @@
 
   // ── WebRTC (partner camera) ───────────────────────────────────────────────
   let peerConn = null;
+  let localCamSnap = null;
+  let _camSnapTimer = null;
+
+  function _snapLocalCam() {
+    const vid = document.getElementById('cam-local');
+    if (!vid || !vid.srcObject) return;
+    try {
+      const s = document.createElement('canvas');
+      s.width  = vid.videoWidth  || 320;
+      s.height = vid.videoHeight || 240;
+      if (s.width === 0 || s.height === 0) return;
+      s.getContext('2d').drawImage(vid, 0, 0);
+      localCamSnap = s;
+    } catch (_) {}
+  }
 
   function closePeer() {
     if (peerConn) { peerConn.close(); peerConn = null; }
@@ -586,6 +601,8 @@
     strokes = [];
     clearCanvas();
     closePeer();
+    clearInterval(_camSnapTimer); _camSnapTimer = null;
+    localCamSnap = null;
   }
 
   // ── Waiting ───────────────────────────────────────────────────────────────
@@ -652,6 +669,8 @@
     showCurrentPrompt();
     resizeCanvas();
     startDrawingTimer(240);
+    _snapLocalCam();
+    _camSnapTimer = setInterval(_snapLocalCam, 3000);
 
     const dn = document.getElementById('draw-now');
     dn.textContent = lang === 'de' ? 'Du kannst jetzt zeichnen' : 'You can draw now';
@@ -735,17 +754,19 @@
     const camH   = Math.round(camW * (9 / 16));
     const margin = 14;
 
-    function stamp(vid, x, y) {
-      if (!vid || !vid.srcObject) return;
+    function stamp(src, x, y) {
+      if (!src) return;
+      if (src instanceof HTMLVideoElement && !src.srcObject) return;
       try {
-        c.drawImage(vid, x, y, camW, camH);
+        c.drawImage(src, x, y, camW, camH);
         c.strokeStyle = 'rgba(255,255,255,0.3)';
         c.lineWidth   = 1;
         c.strokeRect(x, y, camW, camH);
       } catch (_) {}
     }
 
-    stamp(document.getElementById('cam-local'),
+    // Use pre-captured snapshot for local cam — more reliable than live video
+    stamp(localCamSnap || document.getElementById('cam-local'),
           margin, off.height - margin - camH);
     stamp(document.getElementById('cam-partner-video'),
           off.width - margin - camW, off.height - margin - camH);

@@ -387,8 +387,7 @@
       thickLabel:     'Thick:',
       resetLabel:     'Reset',
       closure1Msg1:   'Time is up! We want to take your picture in',
-      closure1Msg2:   'seconds.<br>If you don\'t want your picture saved, please go out of frame.',
-      closure1Msg3:   'Otherwise, smile!',
+      closure1Msg2:   'seconds.<br>If you don\'t want your picture saved, please go out of frame.<br><em>Otherwise, smile!</em>',
       closure2Title:  'Elsewhere, Together',
       closure2Msg:    'This drawing is complete and will be added to the archive.<br>Today the two of you, together, created a piece of art — changing the meaning of distance!',
       camLabel:       'You',
@@ -416,8 +415,7 @@
       thickLabel:     'Stärke:',
       resetLabel:     'Zurücksetzen',
       closure1Msg1:   'Zeit abgelaufen! Wir möchten euch in',
-      closure1Msg2:   'Sekunden fotografieren.<br>Wenn du nicht im Bild sein möchtest, geh bitte aus dem Bild.',
-      closure1Msg3:   'Ansonsten: lächeln!',
+      closure1Msg2:   'Sekunden fotografieren.<br>Wenn du nicht im Bild sein möchtest, geh bitte aus dem Bild.<br><em>Ansonsten: lächeln!</em>',
       closure2Title:  'Elsewhere, Together',
       closure2Msg:    'Diese Zeichnung ist fertig und wird dem Archiv hinzugefügt.<br>Heute habt ihr zwei zusammen ein Kunstwerk erschaffen — und den Begriff Entfernung neu definiert!',
       camLabel:       'Du',
@@ -443,7 +441,6 @@
     document.getElementById('connection-sub').textContent    = t('connectionSub');
     document.getElementById('closure1-msg1').textContent     = t('closure1Msg1');
     document.getElementById('closure1-msg2').innerHTML       = t('closure1Msg2');
-    document.getElementById('closure1-msg3').textContent     = t('closure1Msg3');
     document.getElementById('closure2-title').textContent    = t('closure2Title');
     document.getElementById('closure2-msg').innerHTML        = t('closure2Msg');
     if (currentPrompt) showCurrentPrompt();
@@ -611,14 +608,14 @@
 
   // ── Idle ──────────────────────────────────────────────────────────────────
   function enterIdle() {
-    console.log('[enterIdle] closing peer connection');
+    closePeer();
+    clearInterval(_camSnapTimer); _camSnapTimer = null;
+    localCamSnap = null;
+    console.log('[enterIdle] peer closed, applying language');
     applyLanguage();
     showScreen('idle');
     strokes = [];
     clearCanvas();
-    closePeer();
-    clearInterval(_camSnapTimer); _camSnapTimer = null;
-    localCamSnap = null;
   }
 
   // ── Waiting ───────────────────────────────────────────────────────────────

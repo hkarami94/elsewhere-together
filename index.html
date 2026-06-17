@@ -525,6 +525,7 @@
   }
 
   async function setupPeer(isInitiator) {
+    if (peerConn && ['new','connecting','connected'].includes(peerConn.connectionState)) return;
     closePeer();
     try {
       peerConn = new RTCPeerConnection({ iceServers: [
@@ -579,7 +580,6 @@
       case 'onboarding':
         enterOnboarding();
         SFX.connect();
-        setupPeer(waitingRole === 'initiator');
         break;
       case 'connection':enterConnection();         break;
       case 'prompt':    enterPrompt();             break;
@@ -955,6 +955,8 @@
   socket.on('strokes-sync', (all) => { strokes = all; redrawAll(); });
 
   // ── WebRTC signalling ─────────────────────────────────────────────────────
+  socket.on('peer-ready', ({ initiator }) => setupPeer(initiator));
+
   socket.on('webrtc-offer', async (offer) => {
     try {
       if (!peerConn) await setupPeer(false);

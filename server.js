@@ -179,6 +179,12 @@ io.on('connection', (socket) => {
     socket.emit('partner-waiting');
   }
 
+  // As soon as two clients are present, start WebRTC so they can see each other
+  if (session.clients.length === 2) {
+    session.clients[0].emit('peer-ready', { initiator: true });
+    session.clients[1].emit('peer-ready', { initiator: false });
+  }
+
   // If we're in the drawing phase, send existing strokes so the canvas is in sync
   if (session.state === 'drawing' && session.strokes.length > 0) {
     socket.emit('strokes-sync', session.strokes);

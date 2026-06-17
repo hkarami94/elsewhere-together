@@ -694,26 +694,45 @@
     off.height = canvas.height;
     const c = off.getContext('2d');
 
+    // Drawing
     c.drawImage(canvas, 0, 0);
 
-    const camW   = Math.round(canvas.width * 0.22);
+    // Prompt bar at top
+    const promptText = currentPrompt
+      ? (lang === 'de' ? currentPrompt.de : currentPrompt.en)
+      : '';
+    if (promptText) {
+      const fs   = Math.max(13, Math.round(off.width * 0.022));
+      const barH = Math.round(fs * 2.8);
+      c.fillStyle = 'rgba(0,0,0,0.68)';
+      c.fillRect(0, 0, off.width, barH);
+      c.font          = `${fs}px "Courier New", monospace`;
+      c.fillStyle     = 'rgba(255,255,255,0.8)';
+      c.textAlign     = 'left';
+      c.textBaseline  = 'middle';
+      c.fillText(promptText, 16, barH / 2);
+    }
+
+    // Webcam portraits in bottom corners
+    // videoWidth === 0 means no frame has been decoded yet — skip
+    const camW   = Math.round(off.width * 0.22);
     const camH   = Math.round(camW * (9 / 16));
     const margin = 14;
 
     function stamp(vid, x, y) {
-      if (!vid || !vid.srcObject || vid.readyState < 2) return;
+      if (!vid || !vid.srcObject || vid.videoWidth === 0) return;
       try {
         c.drawImage(vid, x, y, camW, camH);
         c.strokeStyle = 'rgba(255,255,255,0.3)';
-        c.lineWidth = 1;
+        c.lineWidth   = 1;
         c.strokeRect(x, y, camW, camH);
       } catch (_) {}
     }
 
     stamp(document.getElementById('cam-local'),
-          margin, canvas.height - margin - camH);
+          margin, off.height - margin - camH);
     stamp(document.getElementById('cam-partner-video'),
-          canvas.width - margin - camW, canvas.height - margin - camH);
+          off.width - margin - camW, off.height - margin - camH);
 
     return off.toDataURL('image/png');
   }

@@ -736,7 +736,7 @@
     const margin = 14;
 
     function stamp(vid, x, y) {
-      if (!vid || !vid.srcObject || vid.videoWidth === 0) return;
+      if (!vid || !vid.srcObject) return;
       try {
         c.drawImage(vid, x, y, camW, camH);
         c.strokeStyle = 'rgba(255,255,255,0.3)';

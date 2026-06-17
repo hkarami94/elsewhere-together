@@ -85,7 +85,8 @@ let session = {
   waitingTimer: null,
   phaseTimer: null,
   promptIndex: null,
-  strokes: []
+  strokes: [],
+  cameraReady: new Set()
 };
 
 function broadcast(event, data) {
@@ -106,6 +107,19 @@ function resetToIdle() {
   session.promptIndex = null;
   session.strokes = [];
   broadcast('phase', { phase: 'idle' });
+  // Re-establish WebRTC after session reset — cameras are still running
+  if (session.clients.length === 2) {
+    session.clients[0].emit('peer-ready', { initiator: true });
+    session.clients[1].emit('peer-ready', { initiator: false });
+  }
+}
+
+function tryPeerReady() {
+  if (session.clients.length === 2 &&
+      session.clients.every(c => session.cameraReady.has(c.id))) {
+    session.clients[0].emit('peer-ready', { initiator: true });
+    session.clients[1].emit('peer-ready', { initiator: false });
+  }
 }
 
 function pickPromptIndex() {
@@ -179,11 +193,9 @@ io.on('connection', (socket) => {
     socket.emit('partner-waiting');
   }
 
-  // As soon as two clients are present, start WebRTC so they can see each other
-  if (session.clients.length === 2) {
-    session.clients[0].emit('peer-ready', { initiator: true });
-    session.clients[1].emit('peer-ready', { initiator: false });
-  }
+  // WebRTC starts only once both cameras confirm ready (via 'camera-ready' event)
+  // If a second client just joined and the first already has a camera, check now
+  if (session.clients.length === 2) tryPeerReady();
 
   // If we're in the drawing phase, send existing strokes so the canvas is in sync
   if (session.state === 'drawing' && session.strokes.length > 0) {
@@ -239,6 +251,13 @@ io.on('connection', (socket) => {
     } catch (err) { console.error('Save artwork failed:', err.message); }
   });
 
+  // ── Camera ready (WebRTC gating) ──────────────────────────────
+  socket.on('camera-ready', () => {
+    session.cameraReady.add(socket.id);
+    console.log('Camera ready:', socket.id, '| Ready count:', session.cameraReady.size);
+    tryPeerReady();
+  });
+
   // ── WebRTC signalling relay ───────────────────────────────────
   socket.on('webrtc-offer',   (d) => socket.broadcast.emit('webrtc-offer',   d));
   socket.on('webrtc-answer',  (d) => socket.broadcast.emit('webrtc-answer',  d));
@@ -247,6 +266,7 @@ io.on('connection', (socket) => {
   // ── Disconnect ────────────────────────────────────────────────
   socket.on('disconnect', () => {
     console.log('Tab disconnected:', socket.id);
+    session.cameraReady.delete(socket.id);
     session.clients = session.clients.filter(c => c.id !== socket.id);
     if (session.state !== 'idle') resetToIdle();
   });

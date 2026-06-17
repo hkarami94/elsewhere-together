@@ -729,7 +729,7 @@
       c.font = `${fs}px "Courier New", monospace`;
 
       // Split into lines
-      const words = promptText.split(' ');
+      const words = ('Prompt: ' + promptText).split(' ');
       const lines = [];
       let cur = '';
       for (const w of words) {

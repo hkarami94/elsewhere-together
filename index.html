@@ -549,8 +549,15 @@
 
       peerConn.onicecandidate = (e) => { if (e.candidate) socket.emit('webrtc-ice', e.candidate); };
 
-      peerConn.onconnectionstatechange = () =>
-        console.log('[WebRTC] connectionState:', peerConn && peerConn.connectionState);
+      peerConn.onconnectionstatechange = () => {
+        const state = peerConn && peerConn.connectionState;
+        console.log('[WebRTC] connectionState:', state);
+        if (state === 'failed') {
+          console.log('[WebRTC] connection failed — reconnecting in 2s');
+          closePeer();
+          setTimeout(() => setupPeer(isInitiator), 2000);
+        }
+      };
 
       // Server only sends peer-ready after both cameras confirm via camera-ready event,
       // so local.srcObject is guaranteed to be available here
@@ -604,6 +611,7 @@
 
   // ── Idle ──────────────────────────────────────────────────────────────────
   function enterIdle() {
+    console.log('[enterIdle] closing peer connection');
     applyLanguage();
     showScreen('idle');
     strokes = [];
@@ -963,7 +971,12 @@
   socket.on('strokes-sync', (all) => { strokes = all; redrawAll(); });
 
   // ── WebRTC signalling ─────────────────────────────────────────────────────
-  socket.on('peer-ready', ({ initiator }) => setupPeer(initiator));
+  let isInitiator = false;
+  socket.on('peer-ready', ({ initiator }) => {
+    console.log('[peer-ready] received, initiator:', initiator);
+    isInitiator = initiator;
+    setupPeer(initiator);
+  });
 
   socket.on('webrtc-offer', async (offer) => {
     try {

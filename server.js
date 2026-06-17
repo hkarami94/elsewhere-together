@@ -11,7 +11,9 @@ const supabase = (process.env.SUPABASE_URL && process.env.SUPABASE_KEY)
   ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
   : null;
 
-// Gallery API
+// Gallery routes
+app.get('/gallery', (req, res) => res.sendFile(__dirname + '/gallery.html'));
+
 app.get('/gallery-data', async (req, res) => {
   if (!supabase) return res.json([]);
   try {

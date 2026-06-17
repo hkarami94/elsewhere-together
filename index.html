@@ -688,13 +688,43 @@
   }
 
   // ── Closure II ────────────────────────────────────────────────────────────
+  function buildComposite() {
+    const off = document.createElement('canvas');
+    off.width  = canvas.width;
+    off.height = canvas.height;
+    const c = off.getContext('2d');
+
+    c.drawImage(canvas, 0, 0);
+
+    const camW   = Math.round(canvas.width * 0.22);
+    const camH   = Math.round(camW * (9 / 16));
+    const margin = 14;
+
+    function stamp(vid, x, y) {
+      if (!vid || !vid.srcObject || vid.readyState < 2) return;
+      try {
+        c.drawImage(vid, x, y, camW, camH);
+        c.strokeStyle = 'rgba(255,255,255,0.3)';
+        c.lineWidth = 1;
+        c.strokeRect(x, y, camW, camH);
+      } catch (_) {}
+    }
+
+    stamp(document.getElementById('cam-local'),
+          margin, canvas.height - margin - camH);
+    stamp(document.getElementById('cam-partner-video'),
+          canvas.width - margin - camW, canvas.height - margin - camH);
+
+    return off.toDataURL('image/png');
+  }
+
   function enterClosure2(initiatorId) {
     showScreen('closure2');
-    const dataUrl = canvas.toDataURL('image/png');
-    document.getElementById('closure2-canvas-img').src = dataUrl;
+    const composite = buildComposite();
+    document.getElementById('closure2-canvas-img').src = composite;
     SFX.shutter();
     if (socket.id === initiatorId) {
-      socket.emit('save-artwork', { image: dataUrl });
+      socket.emit('save-artwork', { image: composite });
     }
   }
 

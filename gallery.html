@@ -15,31 +15,44 @@
     }
 
     header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
       padding: 48px 40px 32px;
       border-bottom: 1px solid #1a1a1a;
     }
 
     header h1 {
-      font-size: clamp(18px, 3vw, 28px);
+      font-size: clamp(16px, 2.5vw, 26px);
       font-weight: normal;
       letter-spacing: 3px;
       text-transform: uppercase;
     }
 
-    header h1 span {
-      color: #444;
-    }
+    header h1 span { color: #444; }
 
     header p {
-      margin-top: 10px;
       font-size: 12px;
       color: #333;
       letter-spacing: 1px;
     }
 
-    #count {
-      color: #555;
+    #slideshow-btn {
+      background: none;
+      border: 1px solid #333;
+      color: #666;
+      font-family: inherit;
+      font-size: 12px;
+      letter-spacing: 2px;
+      padding: 8px 20px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: border-color .2s, color .2s;
     }
+
+    #slideshow-btn:hover { border-color: #888; color: #fff; }
 
     .grid {
       display: grid;
@@ -57,15 +70,12 @@
     }
 
     .artwork img {
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       object-fit: contain;
       transition: transform .4s ease;
     }
 
-    .artwork:hover img {
-      transform: scale(1.03);
-    }
+    .artwork:hover img { transform: scale(1.03); }
 
     .artwork .meta {
       position: absolute;
@@ -79,9 +89,7 @@
       transition: opacity .2s;
     }
 
-    .artwork:hover .meta {
-      opacity: 1;
-    }
+    .artwork:hover .meta { opacity: 1; }
 
     .empty {
       grid-column: 1 / -1;
@@ -92,72 +100,150 @@
       letter-spacing: 2px;
     }
 
-    /* Lightbox */
+    /* ── Lightbox ── */
     #lightbox {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,.95);
+      background: rgba(0,0,0,.96);
       z-index: 999;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      cursor: zoom-out;
     }
 
     #lightbox.open { display: flex; }
 
-    #lightbox img {
-      max-width: 92vw;
-      max-height: 92vh;
+    #lightbox-img {
+      max-width: 90vw;
+      max-height: 85vh;
       object-fit: contain;
+      transition: opacity .3s;
     }
 
-    #lightbox-close {
+    #lightbox-img.fade { opacity: 0; }
+
+    /* progress bar for slideshow */
+    #slideshow-bar {
       position: fixed;
-      top: 20px; right: 28px;
-      font-size: 28px;
-      color: #444;
-      cursor: pointer;
-      line-height: 1;
+      top: 0; left: 0;
+      height: 2px;
+      background: #fff;
+      width: 0%;
+      transition: width linear;
+      display: none;
     }
 
-    #lightbox-close:hover { color: #fff; }
+    #lightbox.slideshow #slideshow-bar { display: block; }
+
+    /* nav arrows */
+    .lb-arrow {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: rgba(255,255,255,.3);
+      font-size: 48px;
+      cursor: pointer;
+      padding: 20px;
+      line-height: 1;
+      transition: color .2s;
+      user-select: none;
+    }
+
+    .lb-arrow:hover { color: rgba(255,255,255,.9); }
+    #lb-prev { left: 10px; }
+    #lb-next { right: 10px; }
+
+    /* close + counter */
+    #lb-top {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 24px;
+    }
+
+    #lb-counter { font-size: 12px; color: #444; letter-spacing: 2px; }
+    #lb-close { font-size: 22px; color: #444; cursor: pointer; }
+    #lb-close:hover { color: #fff; }
+
+    #lb-slideshow-toggle {
+      background: none;
+      border: 1px solid #333;
+      color: #555;
+      font-family: inherit;
+      font-size: 11px;
+      letter-spacing: 2px;
+      padding: 5px 14px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: border-color .2s, color .2s;
+    }
+
+    #lb-slideshow-toggle:hover,
+    #lb-slideshow-toggle.active { border-color: #888; color: #fff; }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>Elsewhere, Together <span>— Gallery</span></h1>
-    <p>Drawings made together by two strangers in different cities &nbsp;·&nbsp; <span id="count">loading…</span></p>
+    <div>
+      <h1>Elsewhere, Together <span>— Gallery</span></h1>
+      <p style="margin-top:10px">Drawings made together by two strangers &nbsp;·&nbsp; <span id="count">loading…</span></p>
+    </div>
+    <button id="slideshow-btn">▶ Slideshow</button>
   </header>
 
   <div class="grid" id="grid"></div>
 
+  <!-- Lightbox -->
   <div id="lightbox">
-    <div id="lightbox-close">✕</div>
+    <div id="slideshow-bar"></div>
+    <div id="lb-top">
+      <span id="lb-counter"></span>
+      <button id="lb-slideshow-toggle">▶ Play</button>
+      <span id="lb-close">✕</span>
+    </div>
     <img id="lightbox-img" src="" alt="">
+    <button class="lb-arrow" id="lb-prev">‹</button>
+    <button class="lb-arrow" id="lb-next">›</button>
   </div>
 
   <script>
-    const grid = document.getElementById('grid');
-    const lightbox = document.getElementById('lightbox');
-    const lbImg = document.getElementById('lightbox-img');
+    let items = [];
+    let currentIndex = 0;
+    let slideshowTimer = null;
+    const SLIDE_INTERVAL = 5000;
 
+    const lightbox   = document.getElementById('lightbox');
+    const lbImg      = document.getElementById('lightbox-img');
+    const lbCounter  = document.getElementById('lb-counter');
+    const lbBar      = document.getElementById('slideshow-bar');
+    const lbToggle   = document.getElementById('lb-slideshow-toggle');
+
+    // ── Load images ──────────────────────────────────────────────
     fetch('/gallery-data')
       .then(r => r.json())
-      .then(items => {
+      .then(data => {
+        items = data;
         document.getElementById('count').textContent =
           items.length === 0 ? 'no artworks yet'
           : items.length === 1 ? '1 artwork'
           : `${items.length} artworks`;
 
+        const grid = document.getElementById('grid');
+
         if (!items.length) {
           grid.innerHTML = '<div class="empty">No artworks yet.<br>Sessions will appear here after they complete.</div>';
+          document.getElementById('slideshow-btn').style.display = 'none';
           return;
         }
 
-        items.forEach(item => {
-          const ts = parseInt(item.name);
+        items.forEach((item, i) => {
+          const ts   = parseInt(item.name);
           const date = isNaN(ts) ? '' : new Date(ts).toLocaleDateString('en-GB', {
             day: 'numeric', month: 'short', year: 'numeric',
             hour: '2-digit', minute: '2-digit'
@@ -169,20 +255,101 @@
             <img src="${item.url}" loading="lazy" alt="Artwork">
             <div class="meta">${date}</div>
           `;
-          div.addEventListener('click', () => {
-            lbImg.src = item.url;
-            lightbox.classList.add('open');
-          });
+          div.addEventListener('click', () => openLightbox(i));
           grid.appendChild(div);
         });
       })
       .catch(() => {
-        grid.innerHTML = '<div class="empty">Could not load gallery.</div>';
+        document.getElementById('grid').innerHTML =
+          '<div class="empty">Could not load gallery.</div>';
       });
 
-    lightbox.addEventListener('click', () => lightbox.classList.remove('open'));
-    document.getElementById('lightbox-close').addEventListener('click', () => lightbox.classList.remove('open'));
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') lightbox.classList.remove('open'); });
+    // ── Lightbox ─────────────────────────────────────────────────
+    function openLightbox(index) {
+      currentIndex = index;
+      showImage(currentIndex);
+      lightbox.classList.add('open');
+    }
+
+    function showImage(index, fade = false) {
+      currentIndex = (index + items.length) % items.length;
+      lbCounter.textContent = `${currentIndex + 1} / ${items.length}`;
+
+      if (fade) {
+        lbImg.classList.add('fade');
+        setTimeout(() => {
+          lbImg.src = items[currentIndex].url;
+          lbImg.classList.remove('fade');
+        }, 300);
+      } else {
+        lbImg.src = items[currentIndex].url;
+      }
+    }
+
+    function closeLightbox() {
+      stopSlideshow();
+      lightbox.classList.remove('open');
+    }
+
+    // ── Slideshow ─────────────────────────────────────────────────
+    function startSlideshow() {
+      lightbox.classList.add('slideshow');
+      lbToggle.textContent = '■ Stop';
+      lbToggle.classList.add('active');
+
+      lbBar.style.transition = 'none';
+      lbBar.style.width = '0%';
+      requestAnimationFrame(() => {
+        lbBar.style.transition = `width ${SLIDE_INTERVAL}ms linear`;
+        lbBar.style.width = '100%';
+      });
+
+      slideshowTimer = setInterval(() => {
+        showImage(currentIndex + 1, true);
+        lbBar.style.transition = 'none';
+        lbBar.style.width = '0%';
+        requestAnimationFrame(() => {
+          lbBar.style.transition = `width ${SLIDE_INTERVAL}ms linear`;
+          lbBar.style.width = '100%';
+        });
+      }, SLIDE_INTERVAL);
+    }
+
+    function stopSlideshow() {
+      clearInterval(slideshowTimer);
+      slideshowTimer = null;
+      lightbox.classList.remove('slideshow');
+      lbToggle.textContent = '▶ Play';
+      lbToggle.classList.remove('active');
+    }
+
+    function toggleSlideshow() {
+      if (slideshowTimer) stopSlideshow();
+      else startSlideshow();
+    }
+
+    // ── Events ────────────────────────────────────────────────────
+    document.getElementById('slideshow-btn').addEventListener('click', () => {
+      if (!items.length) return;
+      openLightbox(0);
+      startSlideshow();
+    });
+
+    lbToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleSlideshow(); });
+    document.getElementById('lb-close').addEventListener('click', (e) => { e.stopPropagation(); closeLightbox(); });
+    document.getElementById('lb-prev').addEventListener('click', (e) => { e.stopPropagation(); stopSlideshow(); showImage(currentIndex - 1, true); });
+    document.getElementById('lb-next').addEventListener('click', (e) => { e.stopPropagation(); stopSlideshow(); showImage(currentIndex + 1, true); });
+
+    lightbox.addEventListener('click', closeLightbox);
+    lbImg.addEventListener('click', e => e.stopPropagation());
+
+    document.addEventListener('keydown', e => {
+      if (!lightbox.classList.contains('open')) return;
+      if (e.key === 'Escape')      closeLightbox();
+      if (e.key === 'ArrowRight')  { stopSlideshow(); showImage(currentIndex + 1, true); }
+      if (e.key === 'ArrowLeft')   { stopSlideshow(); showImage(currentIndex - 1, true); }
+      if (e.key === ' ')           { e.preventDefault(); toggleSlideshow(); }
+    });
   </script>
 </body>
 </html>

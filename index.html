@@ -688,7 +688,7 @@
   }
 
   // ── Closure II ────────────────────────────────────────────────────────────
-  function buildComposite() {
+  function buildComposite(prompt) {
     const off = document.createElement('canvas');
     off.width  = canvas.width;
     off.height = canvas.height;
@@ -697,24 +697,40 @@
     // Drawing
     c.drawImage(canvas, 0, 0);
 
-    // Prompt bar at top
-    const promptText = currentPrompt
-      ? (lang === 'de' ? currentPrompt.de : currentPrompt.en)
+    // Prompt bar at top — word-wrapped, solid white on dark strip
+    const promptText = prompt
+      ? (lang === 'de' ? prompt.de : prompt.en)
       : '';
     if (promptText) {
-      const fs   = Math.max(13, Math.round(off.width * 0.022));
-      const barH = Math.round(fs * 2.8);
-      c.fillStyle = 'rgba(0,0,0,0.68)';
+      const fs     = Math.max(14, Math.round(off.width * 0.02));
+      const lineH  = Math.round(fs * 1.6);
+      const pad    = Math.round(fs * 0.75);
+      const maxW   = off.width - 32;
+
+      c.font = `${fs}px "Courier New", monospace`;
+
+      // Split into lines
+      const words = promptText.split(' ');
+      const lines = [];
+      let cur = '';
+      for (const w of words) {
+        const test = cur ? cur + ' ' + w : w;
+        if (c.measureText(test).width > maxW && cur) {
+          lines.push(cur); cur = w;
+        } else { cur = test; }
+      }
+      if (cur) lines.push(cur);
+
+      const barH = pad * 2 + lines.length * lineH;
+      c.fillStyle = 'rgba(0,0,0,0.82)';
       c.fillRect(0, 0, off.width, barH);
-      c.font          = `${fs}px "Courier New", monospace`;
-      c.fillStyle     = 'rgba(255,255,255,0.8)';
-      c.textAlign     = 'left';
-      c.textBaseline  = 'middle';
-      c.fillText(promptText, 16, barH / 2);
+      c.fillStyle    = '#ffffff';
+      c.textBaseline = 'top';
+      c.textAlign    = 'left';
+      lines.forEach((line, i) => c.fillText(line, 16, pad + i * lineH));
     }
 
     // Webcam portraits in bottom corners
-    // videoWidth === 0 means no frame has been decoded yet — skip
     const camW   = Math.round(off.width * 0.22);
     const camH   = Math.round(camW * (9 / 16));
     const margin = 14;
@@ -739,7 +755,7 @@
 
   function enterClosure2(initiatorId) {
     showScreen('closure2');
-    const composite = buildComposite();
+    const composite = buildComposite(currentPrompt);
     document.getElementById('closure2-canvas-img').src = composite;
     SFX.shutter();
     if (socket.id === initiatorId) {

@@ -2,8 +2,32 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
+const { createClient } = require('@supabase/supabase-js');
 
 app.use(express.static(__dirname));
+
+const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || 'Elsewhere_Together';
+const supabase = (process.env.SUPABASE_URL && process.env.SUPABASE_KEY)
+  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
+  : null;
+
+// Gallery API
+app.get('/gallery-data', async (req, res) => {
+  if (!supabase) return res.json([]);
+  try {
+    const { data, error } = await supabase.storage
+      .from(SUPABASE_BUCKET)
+      .list('', { limit: 200, sortBy: { column: 'created_at', order: 'desc' } });
+    if (error || !data) return res.json([]);
+    const items = data
+      .filter(f => f.name.endsWith('.png'))
+      .map(f => {
+        const { data: u } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(f.name);
+        return { url: u.publicUrl, name: f.name };
+      });
+    res.json(items);
+  } catch { res.json([]); }
+});
 
 const PROMPTS = {
   en: [
@@ -119,7 +143,7 @@ function runPhaseSequence() {
           session.phaseTimer = setTimeout(() => {
             // Closure II – final: 10s
             session.state = 'closure2';
-            broadcast('phase', { phase: 'closure2', prompt: p });
+            broadcast('phase', { phase: 'closure2', prompt: p, initiatorId: session.initiatorId });
 
             session.phaseTimer = setTimeout(() => {
               resetToIdle();
@@ -191,6 +215,20 @@ io.on('connection', (socket) => {
   // ── Gesture (emoji reaction) ──────────────────────────────────
   socket.on('gesture', (data) => {
     broadcast('gesture', data);
+  });
+
+  // ── Save artwork ─────────────────────────────────────────────
+  socket.on('save-artwork', async ({ image }) => {
+    if (!supabase) return;
+    try {
+      const buf = Buffer.from(image.replace(/^data:image\/png;base64,/, ''), 'base64');
+      const filename = `${Date.now()}.png`;
+      const { error } = await supabase.storage
+        .from(SUPABASE_BUCKET)
+        .upload(filename, buf, { contentType: 'image/png' });
+      if (error) console.error('Upload error:', error.message);
+      else console.log('Artwork saved:', filename);
+    } catch (err) { console.error('Save artwork failed:', err.message); }
   });
 
   // ── WebRTC signalling relay ───────────────────────────────────

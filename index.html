@@ -570,7 +570,7 @@
       case 'prompt':    enterPrompt();             break;
       case 'drawing':   enterDrawing();            break;
       case 'closure1':  enterClosure1();           break;
-      case 'closure2':  enterClosure2();           break;
+      case 'closure2':  enterClosure2(data.initiatorId); break;
     }
   });
 
@@ -688,11 +688,14 @@
   }
 
   // ── Closure II ────────────────────────────────────────────────────────────
-  function enterClosure2() {
+  function enterClosure2(initiatorId) {
     showScreen('closure2');
-    const img = document.getElementById('closure2-canvas-img');
-    img.src = canvas.toDataURL('image/png');
+    const dataUrl = canvas.toDataURL('image/png');
+    document.getElementById('closure2-canvas-img').src = dataUrl;
     SFX.shutter();
+    if (socket.id === initiatorId) {
+      socket.emit('save-artwork', { image: dataUrl });
+    }
   }
 
   // ── Countdown helper ──────────────────────────────────────────────────────

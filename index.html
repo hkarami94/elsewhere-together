@@ -960,7 +960,19 @@
   canvas.addEventListener('mouseup',    () => { isDrawing = false; currentStrokeId = null; });
   canvas.addEventListener('mouseleave', () => { isDrawing = false; currentStrokeId = null; });
 
-  socket.on('draw', (seg) => { strokes.push(seg); drawSegment(seg); });
+  socket.on('draw', (seg) => {
+    strokes.push(seg);
+    drawSegment(seg);
+    // drawSegment calls beginPath(), wiping the local path — restore it if mid-stroke
+    if (isDrawing) {
+      ctx.strokeStyle = currentColor;
+      ctx.lineWidth   = currentWidth;
+      ctx.lineCap     = 'round';
+      ctx.lineJoin    = 'round';
+      ctx.beginPath();
+      ctx.moveTo(lastX * canvas.width, lastY * canvas.height);
+    }
+  });
   socket.on('clear-owner', (data) => {
     strokes = strokes.filter(s => s.owner !== data.owner);
     redrawAll();

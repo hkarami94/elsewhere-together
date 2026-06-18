@@ -286,6 +286,7 @@
     <p id="waiting-message"></p>
     <p class="countdown" id="waiting-count">0:30</p>
     <p class="hint" id="waiting-hint"></p>
+    <p class="hint" id="waiting-lang-hint"></p>
   </div>
 
   <!-- ════════════════════════════════════ ONBOARDING ══ -->
@@ -370,7 +371,7 @@
       idleDe:           '(Für Deutsch, drücke die Taste <strong>EN/DE</strong>)',
       waitingInitiator: 'Waiting for someone to join...',
       waitingResponder: 'Someone is waiting for you.<br>Press <strong>Start</strong> to connect.',
-      waitingHint:      '',
+      waitingHint:      '(To change language, press <strong>EN/DE</strong>)',
       onboardSlides: [
         'This is an interactive installation, connecting you to a stranger in distance, making the possibility to draw together in real time.',
         'The person you are seeing, is seeing the same content as you.',
@@ -398,7 +399,7 @@
       idleDe:           '(For English, press <strong>EN/DE</strong>)',
       waitingInitiator: 'Warte darauf, dass jemand beitritt...',
       waitingResponder: 'Jemand wartet auf dich.<br>Drücke <strong>Start</strong> zum Verbinden.',
-      waitingHint:      '',
+      waitingHint:      '(Für Deutsch, drücke die Taste <strong>EN/DE</strong>)',
       onboardSlides: [
         'Willkommen bei "Elsewhere, Together"<br>Dies ist eine interaktive Installation, die dich mit einer fremden Person an einem anderen Ort verbindet und euch ermöglicht, in Echtzeit gemeinsam zu zeichnen.',
         'Die Person, die du siehst, sieht denselben Inhalt wie du.',
@@ -449,6 +450,9 @@
     setText('closure1-msg2',         t('closure1Msg2'),         true);
     setText('closure2-title',        t('closure2Title'));
     setText('closure2-msg',          t('closure2Msg'),          true);
+    setText('waiting-lang-hint',     t('waitingHint'),          true);
+    const waitingMsgEl = document.getElementById('waiting-message');
+    if (waitingMsgEl) waitingMsgEl.innerHTML = t(waitingRole === 'initiator' ? 'waitingInitiator' : 'waitingResponder');
     if (currentPrompt) showCurrentPrompt();
   }
 

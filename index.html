@@ -426,23 +426,29 @@
   let lang = 'en';
   function t(key) { return LANG[lang][key] || LANG.en[key]; }
 
+  function setText(id, val, html = false) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (html) el.innerHTML = val; else el.textContent = val;
+  }
+
   function applyLanguage() {
-    document.getElementById('idle-msg').innerHTML   = t('idleMsg');
-    document.getElementById('idle-de').innerHTML    = t('idleDe');
-    document.getElementById('cam-local-label').textContent   = t('camLabel');
-    document.getElementById('cam-partner-label').textContent = t('partnerLabel');
-    document.getElementById('color-label').textContent       = t('colorLabel');
-    document.getElementById('thickness-label').textContent   = t('thickLabel');
-    document.getElementById('reset-label').textContent       = t('resetLabel');
-    document.getElementById('drawing-prompt-label').textContent = t('drawingPromptLabel');
-    document.getElementById('prompt-label').textContent      = t('promptLabel');
-    document.getElementById('prompt-sub').textContent        = t('promptSub');
-    document.getElementById('connection-msg').textContent    = t('connectionMsg');
-    document.getElementById('connection-sub').textContent    = t('connectionSub');
-    document.getElementById('closure1-msg1').textContent     = t('closure1Msg1');
-    document.getElementById('closure1-msg2').innerHTML       = t('closure1Msg2');
-    document.getElementById('closure2-title').textContent    = t('closure2Title');
-    document.getElementById('closure2-msg').innerHTML        = t('closure2Msg');
+    setText('idle-msg',              t('idleMsg'),              true);
+    setText('idle-de',               t('idleDe'),               true);
+    setText('cam-local-label',       t('camLabel'));
+    setText('cam-partner-label',     t('partnerLabel'));
+    setText('color-label',           t('colorLabel'));
+    setText('thickness-label',       t('thickLabel'));
+    setText('reset-label',           t('resetLabel'));
+    setText('drawing-prompt-label',  t('drawingPromptLabel'));
+    setText('prompt-label',          t('promptLabel'));
+    setText('prompt-sub',            t('promptSub'));
+    setText('connection-msg',        t('connectionMsg'));
+    setText('connection-sub',        t('connectionSub'));
+    setText('closure1-msg1',         t('closure1Msg1'));
+    setText('closure1-msg2',         t('closure1Msg2'),         true);
+    setText('closure2-title',        t('closure2Title'));
+    setText('closure2-msg',          t('closure2Msg'),          true);
     if (currentPrompt) showCurrentPrompt();
   }
 
@@ -611,11 +617,10 @@
     closePeer();
     clearInterval(_camSnapTimer); _camSnapTimer = null;
     localCamSnap = null;
-    console.log('[enterIdle] peer closed, applying language');
-    applyLanguage();
     showScreen('idle');
     strokes = [];
     clearCanvas();
+    applyLanguage();
   }
 
   // ── Waiting ───────────────────────────────────────────────────────────────

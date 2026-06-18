@@ -614,6 +614,7 @@
 
   // ── Idle ──────────────────────────────────────────────────────────────────
   function enterIdle() {
+    stopVoiceover();
     closePeer();
     clearInterval(_camSnapTimer); _camSnapTimer = null;
     localCamSnap = null;
@@ -636,10 +637,18 @@
     startCountdown('waiting-count', 30, () => {});
   }
 
+  // ── Voiceover ─────────────────────────────────────────────────────────────
+  const _vo = { en: new Audio('/sounds/onboarding-en.mp3'), de: new Audio('/sounds/onboarding-de.mp3') };
+  function stopVoiceover() {
+    Object.values(_vo).forEach(a => { a.pause(); a.currentTime = 0; });
+  }
+
   // ── Onboarding slides ─────────────────────────────────────────────────────
   const SLIDE_DURATIONS = [10000, 8000, 8000, 8000, 6000];
 
   function enterOnboarding() {
+    stopVoiceover();
+    _vo[lang].play().catch(() => {});
     showScreen('onboarding');
     const slides = t('onboardSlides');
     const el = document.getElementById('onboarding-slide');
@@ -666,6 +675,7 @@
 
   // ── Connection ────────────────────────────────────────────────────────────
   function enterConnection() {
+    stopVoiceover();
     showScreen('connection');
   }
 
@@ -1109,14 +1119,11 @@
     // Start / join
     if (key === 's') { socket.emit('start'); return; }
 
-    // Language toggle
+    // Language toggle — idle screen only
     if (key === 'l') {
+      if (active !== 'screen-idle') return;
       lang = lang === 'en' ? 'de' : 'en';
       applyLanguage();
-      // Re-enter current screen text
-      const a = document.querySelector('.screen.active')?.id;
-      if (a === 'screen-waiting') enterWaiting(waitingRole);
-      if (a === 'screen-onboarding') enterOnboarding();
       return;
     }
 

@@ -168,7 +168,7 @@ function runPhaseSequence() {
         }, 240000);
       }, 10000);
     }, 15000);
-  }, 40000);
+  }, 44000);
 }
 
 io.on('connection', (socket) => {

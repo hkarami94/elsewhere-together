@@ -172,15 +172,27 @@ function runPhaseSequence() {
 }
 
 io.on('connection', (socket) => {
-  console.log('Tab connected:', socket.id, '| Clients:', session.clients.length + 1);
+  const clientId = socket.handshake.query.clientId || null;
+  socket._clientId = clientId;
 
-  if (session.clients.length >= 2) {
+  // Allow reconnect from an existing session participant (same clientId)
+  const reconnectIdx = clientId
+    ? session.clients.findIndex(c => c._clientId === clientId)
+    : -1;
+
+  if (reconnectIdx !== -1) {
+    console.log('Reconnect detected for clientId:', clientId);
+    session.cameraReady.delete(session.clients[reconnectIdx].id);
+    session.clients[reconnectIdx] = socket;
+  } else if (session.clients.length >= 2) {
     socket.emit('full');
     socket.disconnect();
     return;
+  } else {
+    session.clients.push(socket);
   }
 
-  session.clients.push(socket);
+  console.log('Tab connected:', socket.id, '| Clients:', session.clients.length);
 
   // Sync new tab to current state
   const p = session.promptIndex !== null
@@ -265,10 +277,25 @@ io.on('connection', (socket) => {
 
   // ── Disconnect ────────────────────────────────────────────────
   socket.on('disconnect', () => {
-    console.log('Tab disconnected:', socket.id);
+    console.log('Tab disconnected:', socket.id, '| clientId:', socket._clientId);
     session.cameraReady.delete(socket.id);
+
+    // Only remove from clients list if not already replaced by a reconnect
     session.clients = session.clients.filter(c => c.id !== socket.id);
-    if (session.state !== 'idle') resetToIdle();
+
+    if (session.state !== 'idle') {
+      // Grace period: give 5 seconds for a reconnect before resetting
+      const disconnectedClientId = socket._clientId;
+      const resetDelay = setTimeout(() => {
+        // If the clientId is no longer in the session, they truly left
+        const stillPresent = session.clients.some(c => c._clientId === disconnectedClientId);
+        if (!stillPresent && session.state !== 'idle') {
+          console.log('No reconnect within grace period, resetting to idle');
+          resetToIdle();
+        }
+      }, 5000);
+      session._pendingReset = resetDelay;
+    }
   });
 });
 

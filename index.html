@@ -273,6 +273,12 @@
   <!-- ── Draw-now overlay ── -->
   <div id="draw-now">You can draw now</div>
 
+  <!-- ══════════════════════════════════════════ FULL ══ -->
+  <div class="screen" id="screen-full">
+    <h1 class="mid-title">Elsewhere, Together</h1>
+    <p class="body-text" style="margin-top:20px;color:#aaa">This session is currently occupied.<br>Please try again later.</p>
+  </div>
+
   <!-- ════════════════════════════════════════ IDLE ══ -->
   <div class="screen active" id="screen-idle">
     <h1 class="big-title" id="idle-title">Elsewhere, Together</h1>
@@ -580,14 +586,19 @@
   }
 
   // ── Socket ────────────────────────────────────────────────────────────────
-  const socket = io();
+  const _clientId = sessionStorage.getItem('et-cid') || (() => {
+    const id = Math.random().toString(36).slice(2, 10);
+    sessionStorage.setItem('et-cid', id);
+    return id;
+  })();
+  const socket = io({ query: { clientId: _clientId } });
   let currentPrompt = null;
   let drawingTimerInterval = null;
   let countdownInterval    = null;
   let waitingRole = 'responder';
 
   socket.on('full', () => {
-    alert('Two participants are already connected. Close one tab and try again.');
+    showScreen('full');
   });
 
   // ── Phase handler ─────────────────────────────────────────────────────────

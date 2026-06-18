@@ -480,7 +480,7 @@
     if (!_ac) _ac = new (window.AudioContext || window.webkitAudioContext)();
     return _ac;
   }
-  function _note(freq, dur, vol = 0.28, type = 'sine') {
+  function _note(freq, dur, vol = 0.55, type = 'sine') {
     const ctx = ac(), osc = ctx.createOscillator(), g = ctx.createGain();
     osc.connect(g); g.connect(ctx.destination);
     osc.type = type; osc.frequency.value = freq;
@@ -490,17 +490,17 @@
   }
   const SFX = {
     connect() { _note(523, 0.14); setTimeout(() => _note(784, 0.22), 160); },
-    like()    { _note(880, 0.09, 0.2); setTimeout(() => _note(1108, 0.18, 0.17), 100); },
-    dislike() { _note(330, 0.09, 0.2); setTimeout(() => _note(220,  0.2,  0.17), 100); },
-    love()    { _note(523, 0.32, 0.17); _note(659, 0.32, 0.14); _note(784, 0.32, 0.13); },
-    tick()    { _note(1200, 0.04, 0.11, 'square'); },
+    like()    { _note(880, 0.09, 0.4); setTimeout(() => _note(1108, 0.18, 0.34), 100); },
+    dislike() { _note(330, 0.09, 0.4); setTimeout(() => _note(220,  0.2,  0.34), 100); },
+    love()    { _note(523, 0.32, 0.34); _note(659, 0.32, 0.28); _note(784, 0.32, 0.26); },
+    tick()    { _note(1200, 0.04, 0.22, 'square'); },
     shutter() {
       const a = ac(), buf = a.createBuffer(1, Math.floor(a.sampleRate * 0.07), a.sampleRate);
       const d = buf.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
       const src = a.createBufferSource(), g = a.createGain();
       src.buffer = buf; src.connect(g); g.connect(a.destination);
-      g.gain.setValueAtTime(0.35, a.currentTime);
+      g.gain.setValueAtTime(0.65, a.currentTime);
       g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 0.07);
       src.start(); src.stop(a.currentTime + 0.07);
     }

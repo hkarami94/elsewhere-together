@@ -87,9 +87,41 @@
       letter-spacing: 1px;
       opacity: 0;
       transition: opacity .2s;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
     }
 
     .artwork:hover .meta { opacity: 1; }
+
+    .dl-btn {
+      background: none;
+      border: 1px solid #555;
+      color: #aaa;
+      font-family: inherit;
+      font-size: 10px;
+      letter-spacing: 1px;
+      padding: 4px 10px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: border-color .2s, color .2s;
+      flex-shrink: 0;
+    }
+    .dl-btn:hover { border-color: #fff; color: #fff; }
+
+    #lb-download {
+      background: none;
+      border: 1px solid #333;
+      color: #555;
+      font-family: inherit;
+      font-size: 11px;
+      letter-spacing: 2px;
+      padding: 5px 14px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: border-color .2s, color .2s;
+    }
+    #lb-download:hover { border-color: #888; color: #fff; }
 
     .empty {
       grid-column: 1 / -1;
@@ -204,8 +236,11 @@
     <div id="slideshow-bar"></div>
     <div id="lb-top">
       <span id="lb-counter"></span>
-      <button id="lb-slideshow-toggle">▶ Play</button>
-      <span id="lb-close">✕</span>
+      <div style="display:flex;gap:12px;align-items:center">
+        <button id="lb-download">↓ Download</button>
+        <button id="lb-slideshow-toggle">▶ Play</button>
+        <span id="lb-close">✕</span>
+      </div>
     </div>
     <img id="lightbox-img" src="" alt="">
     <button class="lb-arrow" id="lb-prev">‹</button>
@@ -213,6 +248,18 @@
   </div>
 
   <script>
+    function downloadImage(url, filename) {
+      fetch(url)
+        .then(r => r.blob())
+        .then(blob => {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = filename || 'artwork.png';
+          a.click();
+          URL.revokeObjectURL(a.href);
+        });
+    }
+
     let items = [];
     let currentIndex = 0;
     let slideshowTimer = null;
@@ -253,8 +300,15 @@
           div.className = 'artwork';
           div.innerHTML = `
             <img src="${item.url}" loading="lazy" alt="Artwork">
-            <div class="meta">${date}</div>
+            <div class="meta">
+              <span>${date}</span>
+              <button class="dl-btn" data-url="${item.url}" data-name="${item.name}">↓ Save</button>
+            </div>
           `;
+          div.querySelector('.dl-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            downloadImage(item.url, item.name);
+          });
           div.addEventListener('click', () => openLightbox(i));
           grid.appendChild(div);
         });
@@ -335,6 +389,11 @@
       startSlideshow();
     });
 
+    document.getElementById('lb-download').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const item = items[currentIndex];
+      if (item) downloadImage(item.url, item.name);
+    });
     lbToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleSlideshow(); });
     document.getElementById('lb-close').addEventListener('click', (e) => { e.stopPropagation(); closeLightbox(); });
     document.getElementById('lb-prev').addEventListener('click', (e) => { e.stopPropagation(); stopSlideshow(); showImage(currentIndex - 1, true); });

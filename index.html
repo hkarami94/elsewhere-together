@@ -1121,7 +1121,7 @@
 
     // Language toggle — idle screen only
     if (key === 'l') {
-      if (active !== 'screen-idle') return;
+      if (active !== 'screen-idle' && active !== 'screen-waiting') return;
       lang = lang === 'en' ? 'de' : 'en';
       applyLanguage();
       return;

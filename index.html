@@ -1139,6 +1139,16 @@
     const key = e.key.toLowerCase();
     const active = document.querySelector('.screen.active')?.id;
 
+    // Fullscreen toggle
+    if (key === 'f') {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+      return;
+    }
+
     // Start / join
     if (key === 's') { socket.emit('start'); return; }
 

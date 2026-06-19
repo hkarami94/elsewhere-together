@@ -288,10 +288,6 @@ io.on('connection', (socket) => {
   socket.on('webrtc-answer',  (d) => socket.broadcast.emit('webrtc-answer',  d));
   socket.on('webrtc-ice',     (d) => socket.broadcast.emit('webrtc-ice',     d));
 
-  socket.on('webrtc-restart', () => {
-    console.log('WebRTC restart requested by', socket.id);
-    tryPeerReady();
-  });
 
   // ── Disconnect ────────────────────────────────────────────────
   socket.on('disconnect', () => {

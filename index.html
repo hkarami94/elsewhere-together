@@ -552,7 +552,7 @@
   }
 
   async function setupPeer(isInitiator) {
-    if (peerConn && ['new','connecting','connected'].includes(peerConn.connectionState)) return;
+    if (peerConn && ['new','connecting','connected','disconnected'].includes(peerConn.connectionState)) return;
     closePeer();
     try {
       peerConn = new RTCPeerConnection({ iceServers: [
@@ -579,11 +579,11 @@
         const state = peerConn && peerConn.connectionState;
         console.log('[WebRTC] connectionState:', state);
         if (state === 'failed') {
-          console.log('[WebRTC] connection failed — restarting via server');
+          console.log('[WebRTC] connection failed — retrying in 2s');
           closePeer();
-          socket.emit('webrtc-restart');
+          setTimeout(() => setupPeer(isInitiator), 2000);
         }
-        // 'disconnected' is transient — let WebRTC self-heal, don't close
+        // 'disconnected' is transient — WebRTC self-heals, don't close
       };
 
       // Server only sends peer-ready after both cameras confirm via camera-ready event,
@@ -1040,7 +1040,7 @@
 
   socket.on('webrtc-offer', async (offer) => {
     try {
-      if (!peerConn) await setupPeer(false);
+      if (!peerConn || ['failed','closed'].includes(peerConn.connectionState)) await setupPeer(false);
       // Add local tracks before answering if setupPeer(false) hadn't run yet
       const local = document.getElementById('cam-local');
       if (local.srcObject) {

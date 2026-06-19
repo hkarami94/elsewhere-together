@@ -566,10 +566,11 @@
         const state = peerConn && peerConn.connectionState;
         console.log('[WebRTC] connectionState:', state);
         if (state === 'failed') {
-          console.log('[WebRTC] connection failed — reconnecting in 2s');
+          console.log('[WebRTC] connection failed — restarting via server');
           closePeer();
-          setTimeout(() => setupPeer(isInitiator), 2000);
+          socket.emit('webrtc-restart');
         }
+        // 'disconnected' is transient — let WebRTC self-heal, don't close
       };
 
       // Server only sends peer-ready after both cameras confirm via camera-ready event,
@@ -600,6 +601,12 @@
 
   socket.on('full', () => {
     showScreen('full');
+  });
+
+  // Re-emit camera-ready after any Socket.io reconnect so server can re-gate WebRTC
+  socket.on('connect', () => {
+    const local = document.getElementById('cam-local');
+    if (local && local.srcObject) socket.emit('camera-ready');
   });
 
   // ── Phase handler ─────────────────────────────────────────────────────────

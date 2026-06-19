@@ -530,12 +530,25 @@
     } catch (_) {}
   }
 
+  let _iceQueue = [];
+  let _remoteDescSet = false;
+
   function closePeer() {
     if (peerConn) { peerConn.close(); peerConn = null; }
+    _iceQueue = [];
+    _remoteDescSet = false;
     const v = document.getElementById('cam-partner-video');
     v.srcObject = null; v.style.display = 'none';
     document.getElementById('cam-partner-placeholder').style.display = 'flex';
     document.getElementById('connection-video').srcObject = null;
+  }
+
+  async function _drainIceQueue() {
+    _remoteDescSet = true;
+    for (const c of _iceQueue) {
+      try { await peerConn.addIceCandidate(c); } catch (_) {}
+    }
+    _iceQueue = [];
   }
 
   async function setupPeer(isInitiator) {
@@ -1037,6 +1050,7 @@
         });
       }
       await peerConn.setRemoteDescription(offer);
+      await _drainIceQueue();
       const answer = await peerConn.createAnswer();
       await peerConn.setLocalDescription(answer);
       socket.emit('webrtc-answer', answer);
@@ -1044,13 +1058,21 @@
   });
 
   socket.on('webrtc-answer', async (answer) => {
-    try { if (peerConn) await peerConn.setRemoteDescription(answer); }
-    catch (err) { console.warn('WebRTC answer handling failed:', err.message); }
+    try {
+      if (peerConn) {
+        await peerConn.setRemoteDescription(answer);
+        await _drainIceQueue();
+      }
+    } catch (err) { console.warn('WebRTC answer handling failed:', err.message); }
   });
 
   socket.on('webrtc-ice', async (candidate) => {
-    try { if (peerConn) await peerConn.addIceCandidate(candidate); }
-    catch (err) { /* stale candidate, ignore */ }
+    if (!peerConn) return;
+    if (_remoteDescSet) {
+      try { await peerConn.addIceCandidate(candidate); } catch (_) {}
+    } else {
+      _iceQueue.push(candidate);
+    }
   });
 
   // ── Color buttons ─────────────────────────────────────────────────────────

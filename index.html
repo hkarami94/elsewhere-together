@@ -591,7 +591,8 @@
     sessionStorage.setItem('et-cid', id);
     return id;
   })();
-  const socket = io({ query: { clientId: _clientId } });
+  const _loadId = Math.random().toString(36).slice(2, 10);
+  const socket = io({ query: { clientId: _clientId, loadId: _loadId } });
   let currentPrompt = null;
   let drawingTimerInterval = null;
   let countdownInterval    = null;

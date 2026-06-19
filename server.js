@@ -173,17 +173,30 @@ function runPhaseSequence() {
 
 io.on('connection', (socket) => {
   const clientId = socket.handshake.query.clientId || null;
+  const loadId   = socket.handshake.query.loadId   || null;
   socket._clientId = clientId;
+  socket._loadId   = loadId;
 
-  // Allow reconnect from an existing session participant (same clientId)
-  const reconnectIdx = clientId
+  // Check if this clientId is already in the session
+  const existingIdx = clientId
     ? session.clients.findIndex(c => c._clientId === clientId)
     : -1;
 
-  if (reconnectIdx !== -1) {
-    console.log('Reconnect detected for clientId:', clientId);
-    session.cameraReady.delete(session.clients[reconnectIdx].id);
-    session.clients[reconnectIdx] = socket;
+  if (existingIdx !== -1) {
+    const existing = session.clients[existingIdx];
+    if (existing._loadId === loadId) {
+      // Same page load — genuine network reconnect, restore their slot
+      console.log('Network reconnect for clientId:', clientId);
+      session.cameraReady.delete(existing.id);
+      session.clients[existingIdx] = socket;
+    } else {
+      // Different loadId — intentional page refresh, treat as leaving
+      console.log('Page refresh for clientId:', clientId, '— resetting session');
+      session.cameraReady.delete(existing.id);
+      session.clients = session.clients.filter((_, i) => i !== existingIdx);
+      if (session.state !== 'idle') resetToIdle();
+      session.clients.push(socket);
+    }
   } else if (session.clients.length >= 2) {
     socket.emit('full');
     socket.disconnect();
@@ -280,21 +293,23 @@ io.on('connection', (socket) => {
     console.log('Tab disconnected:', socket.id, '| clientId:', socket._clientId);
     session.cameraReady.delete(socket.id);
 
-    // Only remove from clients list if not already replaced by a reconnect
+    // Don't remove if this slot was already replaced by a reconnect
     session.clients = session.clients.filter(c => c.id !== socket.id);
 
     if (session.state !== 'idle') {
-      // Grace period: give 5 seconds for a reconnect before resetting
-      const disconnectedClientId = socket._clientId;
-      const resetDelay = setTimeout(() => {
-        // If the clientId is no longer in the session, they truly left
-        const stillPresent = session.clients.some(c => c._clientId === disconnectedClientId);
-        if (!stillPresent && session.state !== 'idle') {
-          console.log('No reconnect within grace period, resetting to idle');
+      // Short grace period for network blips — if the same loadId reconnects, the
+      // connection handler will restore their slot and cancel the reset naturally
+      const snapClientId = socket._clientId;
+      const snapLoadId   = socket._loadId;
+      setTimeout(() => {
+        const reconnected = session.clients.some(
+          c => c._clientId === snapClientId && c._loadId === snapLoadId
+        );
+        if (!reconnected && session.state !== 'idle') {
+          console.log('Client did not reconnect, resetting to idle');
           resetToIdle();
         }
-      }, 5000);
-      session._pendingReset = resetDelay;
+      }, 3000);
     }
   });
 });

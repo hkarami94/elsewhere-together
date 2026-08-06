@@ -301,6 +301,13 @@ io.on('connection', (socket) => {
     // Don't remove if this slot was already replaced by a reconnect
     session.clients = session.clients.filter(c => c.id !== socket.id);
 
+    // Whatever remains has no other way to learn the far end just vanished —
+    // its RTCPeerConnection would otherwise sit stale (still 'connected' or
+    // 'disconnected', never 'failed') until the partner reconnects. This fires
+    // for real leaves, refreshes, and network blips alike; a reconnecting
+    // partner re-announces 'camera-ready' and peer-ready rebuilds it cleanly.
+    session.clients.forEach(c => c.emit('webrtc-reset'));
+
     if (session.state !== 'idle') {
       // Short grace period for network blips — if the same loadId reconnects, the
       // connection handler will restore their slot and cancel the reset naturally

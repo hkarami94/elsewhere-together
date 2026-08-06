@@ -274,6 +274,7 @@
       transform: scaleX(-1);
     }
     #talking-count { font-size: clamp(24px, 4vw, 48px); color: #fff; margin-top: 24px; }
+    #talking-msg   { font-size: clamp(16px, 2.2vw, 26px); color: #FFE000; margin-top: 18px; }
   </style>
 </head>
 <body>
@@ -408,6 +409,7 @@
   <!-- ══════════════════════════════════════ TALKING ══ -->
   <div class="screen" id="screen-talking">
     <video id="talking-video" autoplay playsinline></video>
+    <p id="talking-msg">You can hear each other now</p>
     <p id="talking-count">45</p>
   </div>
 
@@ -447,6 +449,7 @@
       talkYes:        'Yes',
       talkNo:         'No',
       talkWaiting:    'Waiting for your partner...',
+      talkingMsg:     'You can hear each other now',
     },
     de: {
       idleMsg:          'Willkommen! Drücke <strong>Start</strong> zum Verbinden.',
@@ -479,6 +482,7 @@
       talkYes:        'Ja',
       talkNo:         'Nein',
       talkWaiting:    'Warte auf deine*n Partner*in...',
+      talkingMsg:     'Ihr könnt euch jetzt hören',
     }
   };
 
@@ -513,6 +517,7 @@
     setText('talk-yes-btn',          t('talkYes'));
     setText('talk-no-btn',           t('talkNo'));
     setText('talk-ask-waiting',      t('talkWaiting'));
+    setText('talking-msg',           t('talkingMsg'));
     const waitingMsgEl = document.getElementById('waiting-message');
     if (waitingMsgEl) waitingMsgEl.innerHTML = t(waitingRole === 'initiator' ? 'waitingInitiator' : 'waitingResponder');
     if (currentPrompt) showCurrentPrompt();

@@ -146,7 +146,7 @@ function enterTalking() {
   broadcast('phase', { phase: 'talking' });
   session.phaseTimer = setTimeout(() => {
     resetToIdle();
-  }, 30000);
+  }, 45000);
 }
 
 function runPhaseSequence() {

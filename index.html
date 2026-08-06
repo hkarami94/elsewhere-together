@@ -408,7 +408,7 @@
   <!-- ══════════════════════════════════════ TALKING ══ -->
   <div class="screen" id="screen-talking">
     <video id="talking-video" autoplay playsinline></video>
-    <p id="talking-count">30</p>
+    <p id="talking-count">45</p>
   </div>
 
   <!-- ════════════════════════════════════════════════ -->
@@ -943,7 +943,7 @@
     talkingVid.play().catch(() => {});
     const localStream = document.getElementById('cam-local').srcObject;
     if (localStream) localStream.getAudioTracks().forEach(t => { t.enabled = true; });
-    startCountdown('talking-count', 30, () => {});
+    startCountdown('talking-count', 45, () => {});
   }
 
   // ── Countdown helper ──────────────────────────────────────────────────────

@@ -31,6 +31,44 @@ app.get('/gallery-data', async (req, res) => {
   } catch { res.json([]); }
 });
 
+// ── WebRTC ICE servers ──────────────────────────────────────────
+// Cloudflare Realtime TURN gives each client short-lived, single-use
+// credentials (unlike the old static public demo credentials, which are
+// shared with every other project using them). Falls back to the old
+// public STUN/TURN set if Cloudflare isn't configured or the request fails,
+// so the app still works (just with less TURN headroom) either way.
+const CF_TURN_KEY_ID = process.env.CF_TURN_KEY_ID;
+const CF_TURN_TOKEN  = process.env.CF_TURN_TOKEN;
+const FALLBACK_ICE_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'turn:openrelay.metered.ca:80',  username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+];
+
+app.get('/ice-servers', async (req, res) => {
+  if (!CF_TURN_KEY_ID || !CF_TURN_TOKEN) {
+    return res.json({ iceServers: FALLBACK_ICE_SERVERS });
+  }
+  try {
+    const cfRes = await fetch(
+      `https://rtc.live.cloudflare.com/v1/turn/keys/${CF_TURN_KEY_ID}/credentials/generate-ice-servers`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${CF_TURN_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ttl: 86400 })
+      }
+    );
+    if (!cfRes.ok) throw new Error(`Cloudflare TURN request failed: ${cfRes.status}`);
+    const data = await cfRes.json();
+    res.json({ iceServers: data.iceServers });
+  } catch (err) {
+    console.error('Cloudflare TURN credential fetch failed, using fallback:', err.message);
+    res.json({ iceServers: FALLBACK_ICE_SERVERS });
+  }
+});
+
 const PROMPTS = {
   en: [
     "Draw your favorite snacks you used to buy with your pocket money.",

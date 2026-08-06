@@ -606,17 +606,43 @@
     document.getElementById('connection-video').srcObject = null;
   }
 
+  // Fallback used only if our own /ice-servers endpoint is unreachable —
+  // the endpoint itself already falls back if Cloudflare's API call fails,
+  // so this is a second, client-side safety net.
+  const FALLBACK_ICE_SERVERS = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'turn:openrelay.metered.ca:80',  username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+  ];
+
+  async function fetchIceServers() {
+    try {
+      const res = await fetch('/ice-servers');
+      const data = await res.json();
+      if (Array.isArray(data.iceServers) && data.iceServers.length) return data.iceServers;
+      throw new Error('empty iceServers response');
+    } catch (err) {
+      console.warn('[WebRTC] /ice-servers fetch failed, using fallback:', err.message);
+      return FALLBACK_ICE_SERVERS;
+    }
+  }
+
+  // Guards the window between closePeer() and the new RTCPeerConnection being
+  // assigned — fetchIceServers() is async, so a second setupPeer() call (e.g.
+  // a duplicate peer-ready) could otherwise slip past the peerConn-state guard
+  // below while peerConn is still null and start a redundant connection.
+  let peerSetupInFlight = false;
+
   async function setupPeer(isInitiator) {
+    if (peerSetupInFlight) return;
     if (peerConn && ['new','connecting','connected','disconnected'].includes(peerConn.connectionState)) return;
+    peerSetupInFlight = true;
     closePeer();
     try {
-      peerConn = new RTCPeerConnection({ iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'turn:openrelay.metered.ca:80',  username: 'openrelayproject', credential: 'openrelayproject' },
-        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
-      ]});
+      const iceServers = await fetchIceServers();
+      peerConn = new RTCPeerConnection({ iceServers });
 
       peerConn.ontrack = (e) => {
         console.log('[WebRTC] ontrack — stream received');
@@ -652,6 +678,7 @@
         socket.emit('webrtc-offer', offer);
       }
     } catch (err) { console.warn('WebRTC setup failed:', err.message); }
+    finally { peerSetupInFlight = false; }
   }
 
   // ── Socket ────────────────────────────────────────────────────────────────

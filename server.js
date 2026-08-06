@@ -62,6 +62,7 @@ app.get('/ice-servers', async (req, res) => {
     );
     if (!cfRes.ok) throw new Error(`Cloudflare TURN request failed: ${cfRes.status}`);
     const data = await cfRes.json();
+    console.log('Cloudflare TURN credentials issued OK');
     res.json({ iceServers: data.iceServers });
   } catch (err) {
     console.error('Cloudflare TURN credential fetch failed, using fallback:', err.message);

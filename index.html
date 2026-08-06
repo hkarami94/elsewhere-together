@@ -1019,6 +1019,9 @@
 
   // ── WebRTC signalling ─────────────────────────────────────────────────────
   let isInitiator = false;
+  // Partner's tab was refreshed — their old RTCPeerConnection is gone, so ours
+  // must close too (its connectionState alone won't tell us it's dead).
+  socket.on('webrtc-reset', () => { closePeer(); });
   socket.on('peer-ready', ({ initiator }) => {
     console.log('[peer-ready] received, initiator:', initiator);
     isInitiator = initiator;

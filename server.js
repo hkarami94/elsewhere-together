@@ -194,6 +194,10 @@ io.on('connection', (socket) => {
       console.log('Page refresh for clientId:', clientId, '— resetting session');
       session.cameraReady.delete(existing.id);
       session.clients = session.clients.filter((_, i) => i !== existingIdx);
+      // The refreshed tab's old RTCPeerConnection is gone, but the survivor's
+      // is still alive from its point of view (state stays 'connected'/'disconnected',
+      // never 'failed') — tell it to close now so it rebuilds once peer-ready fires.
+      session.clients.forEach(c => c.emit('webrtc-reset'));
       if (session.state !== 'idle') resetToIdle();
       session.clients.push(socket);
     }

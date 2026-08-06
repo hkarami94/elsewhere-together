@@ -248,6 +248,32 @@
       display: block;
     }
     #closure2-msg { font-size: clamp(14px, 2vw, 22px); color: #ccc; margin-top: 16px; max-width: 600px; }
+
+    /* ── Talk request / talking ── */
+    #talk-ask-buttons { display: flex; gap: 24px; margin-top: 32px; }
+    .talk-btn {
+      background: none;
+      border: 2px solid #555;
+      color: #fff;
+      font-family: inherit;
+      font-size: clamp(16px, 2vw, 22px);
+      padding: 10px 36px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+    }
+    .talk-btn:hover  { border-color: #FFE000; color: #FFE000; }
+    #talk-ask-waiting { font-size: clamp(14px, 2vw, 20px); color: #aaa; margin-top: 32px; }
+    #talk-ask-count   { font-size: clamp(24px, 4vw, 48px); color: #fff; margin-top: 28px; }
+    #talking-video {
+      width: min(90vw, 900px);
+      height: min(70vh, 600px);
+      object-fit: cover;
+      background: #111;
+      border: 2px solid #333;
+      transform: scaleX(-1);
+    }
+    #talking-count { font-size: clamp(24px, 4vw, 48px); color: #fff; margin-top: 24px; }
   </style>
 </head>
 <body>
@@ -367,6 +393,24 @@
     <p id="closure2-msg">This drawing is complete and will be added to the archive.<br>Today the two of you, together, created a piece of art — changing the meaning of distance!</p>
   </div>
 
+  <!-- ═══════════════════════════════════ TALK ASK ══ -->
+  <div class="screen" id="screen-talk-ask">
+    <h1 class="mid-title" id="talk-ask-title">Elsewhere, Together</h1>
+    <p class="body-text" id="talk-ask-msg">Would you like to talk to your partner?</p>
+    <div id="talk-ask-buttons">
+      <button class="talk-btn" id="talk-yes-btn">Yes</button>
+      <button class="talk-btn" id="talk-no-btn">No</button>
+    </div>
+    <p id="talk-ask-waiting" style="display:none;">Waiting for your partner...</p>
+    <p id="talk-ask-count">15</p>
+  </div>
+
+  <!-- ══════════════════════════════════════ TALKING ══ -->
+  <div class="screen" id="screen-talking">
+    <video id="talking-video" autoplay playsinline></video>
+    <p id="talking-count">30</p>
+  </div>
+
   <!-- ════════════════════════════════════════════════ -->
   <script src="/socket.io/socket.io.js"></script>
   <script>
@@ -399,6 +443,10 @@
       closure2Msg:    'This drawing is complete and will be added to the archive.<br>Today the two of you, together, created a piece of art — changing the meaning of distance!',
       camLabel:       'You',
       partnerLabel:   'Your Partner',
+      talkAskMsg:     'Would you like to talk to your partner?',
+      talkYes:        'Yes',
+      talkNo:         'No',
+      talkWaiting:    'Waiting for your partner...',
     },
     de: {
       idleMsg:          'Willkommen! Drücke <strong>Start</strong> zum Verbinden.',
@@ -427,6 +475,10 @@
       closure2Msg:    'Diese Zeichnung ist fertig und wird dem Archiv hinzugefügt.<br>Heute habt ihr zwei zusammen ein Kunstwerk erschaffen — und den Begriff Entfernung neu definiert!',
       camLabel:       'Du',
       partnerLabel:   'Dein*e Partner*in',
+      talkAskMsg:     'Möchtest du mit deinem/deiner Partner*in sprechen?',
+      talkYes:        'Ja',
+      talkNo:         'Nein',
+      talkWaiting:    'Warte auf deine*n Partner*in...',
     }
   };
 
@@ -457,6 +509,10 @@
     setText('closure2-title',        t('closure2Title'));
     setText('closure2-msg',          t('closure2Msg'),          true);
     setText('waiting-lang-hint',     t('waitingHint'),          true);
+    setText('talk-ask-msg',          t('talkAskMsg'));
+    setText('talk-yes-btn',          t('talkYes'));
+    setText('talk-no-btn',           t('talkNo'));
+    setText('talk-ask-waiting',      t('talkWaiting'));
     const waitingMsgEl = document.getElementById('waiting-message');
     if (waitingMsgEl) waitingMsgEl.innerHTML = t(waitingRole === 'initiator' ? 'waitingInitiator' : 'waitingResponder');
     if (currentPrompt) showCurrentPrompt();
@@ -471,7 +527,18 @@
   // ── Webcam ────────────────────────────────────────────────────────────────
   async function startCamera() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      // Mic is requested up front (alongside the camera) so there's no permission
+      // prompt/delay later when both partners agree to talk — it stays muted
+      // (track.enabled = false) until the "talking" phase explicitly opens it.
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      } catch (_) {
+        // Mic denied/unavailable — fall back to video-only so the core
+        // drawing feature still works; "talk" just won't be available.
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
+      stream.getAudioTracks().forEach(t => { t.enabled = false; });
       document.getElementById('cam-local').srcObject = stream;
       socket.emit('camera-ready');
     } catch (e) {
@@ -627,6 +694,8 @@
       case 'drawing':   enterDrawing();            break;
       case 'closure1':  enterClosure1();           break;
       case 'closure2':  enterClosure2(data.initiatorId); break;
+      case 'talk-ask':  enterTalkAsk();             break;
+      case 'talking':   enterTalking();             break;
     }
   });
 
@@ -641,6 +710,15 @@
     closePeer();
     clearInterval(_camSnapTimer); _camSnapTimer = null;
     localCamSnap = null;
+    // In case a "talking" phase was cut short (partner left, timer raced idle) —
+    // mic stays muted between rounds until explicitly opened again.
+    const localStream = document.getElementById('cam-local').srcObject;
+    if (localStream) localStream.getAudioTracks().forEach(t => { t.enabled = false; });
+    const talkingVid = document.getElementById('talking-video');
+    talkingVid.muted = true;
+    talkingVid.srcObject = null;
+    document.getElementById('talk-ask-buttons').style.display = 'flex';
+    document.getElementById('talk-ask-waiting').style.display = 'none';
     showScreen('idle');
     strokes = [];
     clearCanvas();
@@ -833,6 +911,35 @@
     if (socket.id === initiatorId) {
       socket.emit('save-artwork', { image: composite });
     }
+  }
+
+  // ── Talk request / talking ────────────────────────────────────────────────
+  function enterTalkAsk() {
+    showScreen('talk-ask');
+    document.getElementById('talk-ask-buttons').style.display = 'flex';
+    document.getElementById('talk-ask-waiting').style.display = 'none';
+    startCountdown('talk-ask-count', 15, () => {});
+  }
+
+  function respondTalk(wantsTalk) {
+    socket.emit('talk-response', { wantsTalk });
+    document.getElementById('talk-ask-buttons').style.display = 'none';
+    document.getElementById('talk-ask-waiting').style.display = 'block';
+  }
+
+  document.getElementById('talk-yes-btn').addEventListener('click', () => respondTalk(true));
+  document.getElementById('talk-no-btn').addEventListener('click', () => respondTalk(false));
+
+  function enterTalking() {
+    showScreen('talking');
+    const partnerStream = document.getElementById('cam-partner-video').srcObject;
+    const talkingVid = document.getElementById('talking-video');
+    talkingVid.srcObject = partnerStream;
+    talkingVid.muted = false;
+    talkingVid.play().catch(() => {});
+    const localStream = document.getElementById('cam-local').srcObject;
+    if (localStream) localStream.getAudioTracks().forEach(t => { t.enabled = true; });
+    startCountdown('talking-count', 30, () => {});
   }
 
   // ── Countdown helper ──────────────────────────────────────────────────────

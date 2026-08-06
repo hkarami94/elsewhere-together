@@ -86,7 +86,8 @@ let session = {
   phaseTimer: null,
   promptIndex: null,
   strokes: [],
-  cameraReady: new Set()
+  cameraReady: new Set(),
+  talkResponses: {}
 };
 
 function broadcast(event, data) {
@@ -106,6 +107,7 @@ function resetToIdle() {
   session.initiatorId = null;
   session.promptIndex = null;
   session.strokes = [];
+  session.talkResponses = {};
   broadcast('phase', { phase: 'idle' });
   // Re-establish WebRTC after session reset — cameras are still running
   if (session.clients.length === 2) {
@@ -124,6 +126,24 @@ function tryPeerReady() {
 
 function pickPromptIndex() {
   return Math.floor(Math.random() * PROMPTS.en.length);
+}
+
+function enterTalkAsk() {
+  session.state = 'talk-ask';
+  session.talkResponses = {};
+  broadcast('phase', { phase: 'talk-ask' });
+  session.phaseTimer = setTimeout(() => {
+    // Not both answered "yes" in time — back to idle
+    resetToIdle();
+  }, 15000);
+}
+
+function enterTalking() {
+  session.state = 'talking';
+  broadcast('phase', { phase: 'talking' });
+  session.phaseTimer = setTimeout(() => {
+    resetToIdle();
+  }, 30000);
 }
 
 function runPhaseSequence() {
@@ -162,7 +182,7 @@ function runPhaseSequence() {
             broadcast('phase', { phase: 'closure2', prompt: p, initiatorId: session.initiatorId });
 
             session.phaseTimer = setTimeout(() => {
-              resetToIdle();
+              enterTalkAsk();
             }, 10000);
           }, 10000);
         }, 240000);
@@ -278,6 +298,21 @@ io.on('connection', (socket) => {
       if (error) console.error('Upload error:', error.message);
       else console.log('Artwork saved:', filename);
     } catch (err) { console.error('Save artwork failed:', err.message); }
+  });
+
+  // ── Post-drawing "talk to your partner?" consent ───────────────
+  socket.on('talk-response', ({ wantsTalk }) => {
+    if (session.state !== 'talk-ask') return;
+    session.talkResponses[socket.id] = wantsTalk;
+
+    if (!wantsTalk) {
+      resetToIdle();
+      return;
+    }
+    if (session.clients.length === 2 &&
+        session.clients.every(c => session.talkResponses[c.id] === true)) {
+      enterTalking();
+    }
   });
 
   // ── Camera ready (WebRTC gating) ──────────────────────────────

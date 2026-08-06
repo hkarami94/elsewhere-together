@@ -139,6 +139,9 @@ function enterTalkAsk() {
 }
 
 function enterTalking() {
+  // Cancel the talk-ask fallback timer — it's a separate setTimeout from a
+  // prior phase, and reassigning session.phaseTimer below doesn't stop it.
+  clearTimeout(session.phaseTimer);
   session.state = 'talking';
   broadcast('phase', { phase: 'talking' });
   session.phaseTimer = setTimeout(() => {

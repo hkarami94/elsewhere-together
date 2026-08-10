@@ -428,7 +428,7 @@
         'This is an interactive installation, connecting you to a stranger in distance, making the possibility to draw together in real time.',
         'The person you are seeing, is seeing the same content as you.',
         'Shortly, you will see a prompt. Try to draw the prompt together with your paired partner within the time limit.',
-        'For drawing, grab the pointer and move your hand to guide the line. Hold the button "L" to draw.<img src="/images/pointer.png" style="display:block;margin:24px auto 0;max-width:min(420px,80%);max-height:220px;object-fit:contain;border-radius:6px;">',
+        'For drawing, grab the pen and paint on the black board in front of you.<img src="/images/board.png" style="display:block;margin:24px auto 0;max-width:min(420px,80%);max-height:220px;object-fit:contain;border-radius:6px;">',
         'During drawing, you can:<br>- Change your drawing color<br>- Change your brush thickness<br>- Reset the drawing (it erases all what "you" have drawn)<img src="/images/keyboard.png" style="display:block;margin:24px auto 0;max-width:min(420px,80%);max-height:220px;object-fit:contain;border-radius:6px;">'
       ],
       connectionMsg:  'This is your paired partner.',
@@ -461,7 +461,7 @@
         'Willkommen bei "Elsewhere, Together"<br>Dies ist eine interaktive Installation, die dich mit einer fremden Person an einem anderen Ort verbindet und euch ermöglicht, in Echtzeit gemeinsam zu zeichnen.',
         'Die Person, die du siehst, sieht denselben Inhalt wie du.',
         'Gleich erscheint ein Prompt. Versucht, diesen innerhalb des Zeitlimits gemeinsam zu zeichnen.',
-        'Zum Zeichnen: Richte den Zeiger aus und bewege deine Hand um die Linie zu steuern. Halte den Button "L" gedrückt um zu zeichnen.<img src="/images/pointer.png" style="display:block;margin:24px auto 0;max-width:min(420px,80%);max-height:220px;object-fit:contain;border-radius:6px;">',
+        'Zum Zeichnen: Nimm den Stift und male auf die schwarze Tafel vor dir.<img src="/images/board.png" style="display:block;margin:24px auto 0;max-width:min(420px,80%);max-height:220px;object-fit:contain;border-radius:6px;">',
         'Während des Zeichnens kannst du:<br>- die Farbe deiner Zeichnung ändern.<br>- die Dicke des Pinsels anpassen.<br>- die Zeichnung zurücksetzen (alles, was "du" gezeichnet hast, wird gelöscht).<img src="/images/keyboard.png" style="display:block;margin:24px auto 0;max-width:min(420px,80%);max-height:220px;object-fit:contain;border-radius:6px;">'
       ],
       connectionMsg:  'Das ist dein*e Partner*in.',
@@ -1097,8 +1097,14 @@
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // Local drawing — single continuous open path from mousedown to mouseup
-  canvas.addEventListener('mousedown', (e) => {
+  // Local drawing — single continuous open path from pointerdown to pointerup.
+  // Pointer Events (not mouse events) so pen tablets like the Huion register
+  // tip presses correctly — pen input reports as pointerType 'pen' and isn't
+  // guaranteed to fire legacy mousedown/mouseup, even though hover/tracking
+  // works either way. This also covers touch for free.
+  canvas.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    canvas.setPointerCapture(e.pointerId);
     isDrawing = true;
     strokeIdCounter++;
     currentStrokeId = socket.id + '_' + strokeIdCounter;
@@ -1113,7 +1119,7 @@
     ctx.moveTo(e.offsetX, e.offsetY);
   });
 
-  canvas.addEventListener('mousemove', (e) => {
+  canvas.addEventListener('pointermove', (e) => {
     if (!isDrawing) return;
 
     const x1 = e.offsetX / canvas.width;
@@ -1138,8 +1144,8 @@
     lastY = y1;
   });
 
-  canvas.addEventListener('mouseup',    () => { isDrawing = false; currentStrokeId = null; });
-  canvas.addEventListener('mouseleave', () => { isDrawing = false; currentStrokeId = null; });
+  canvas.addEventListener('pointerup',     () => { isDrawing = false; currentStrokeId = null; });
+  canvas.addEventListener('pointercancel', () => { isDrawing = false; currentStrokeId = null; });
 
   socket.on('draw', (seg) => {
     strokes.push(seg);

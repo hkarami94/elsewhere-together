@@ -323,6 +323,17 @@ io.on('connection', (socket) => {
     broadcast('clear-owner', { owner: socket.id });
   });
 
+  // Only removes a stroke owned by the requesting socket — never a partner's.
+  // Only broadcasts if something was actually removed, so a stale strokeId
+  // can't desync clients from the server's authoritative strokes list.
+  socket.on('undo-stroke', ({ strokeId }) => {
+    const before = session.strokes.length;
+    session.strokes = session.strokes.filter(s => !(s.strokeId === strokeId && s.owner === socket.id));
+    if (session.strokes.length !== before) {
+      broadcast('undo-stroke', { strokeId });
+    }
+  });
+
   // ── Gesture (emoji reaction) ──────────────────────────────────
   socket.on('gesture', (data) => {
     broadcast('gesture', data);

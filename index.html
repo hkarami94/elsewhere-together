@@ -376,6 +376,7 @@
       <button class="gesture-btn" data-gesture="dislike" title="H = Dislike">👎</button>
       <button class="gesture-btn" data-gesture="love"    title="J = Love">❤️</button>
       <span style="width:1px; background:#333; height:24px; margin:0 6px; align-self:center;"></span>
+      <button id="undoBtn" style="background:none;border:1px solid #444;color:#aaa;font-family:inherit;font-size:12px;padding:4px 10px;cursor:pointer;border-radius:4px;" title="Ctrl+Z = Undo my last line">⎌ <span id="undo-label">Undo</span></button>
       <button id="resetBtn" style="background:none;border:1px solid #444;color:#aaa;font-family:inherit;font-size:12px;padding:4px 10px;cursor:pointer;border-radius:4px;" title="R = Reset my drawing">↺ <span id="reset-label">Reset</span></button>
     </div>
   </div>
@@ -438,6 +439,7 @@
       drawingPromptLabel: 'Prompt: ',
       colorLabel:     'Color:',
       thickLabel:     'Thick:',
+      undoLabel:      'Undo',
       resetLabel:     'Reset',
       closure1Msg1:   'Time is up! We want to take your picture in',
       closure1Msg2:   'seconds.<br>If you don\'t want your picture saved, please go out of frame.<br><em>Otherwise, smile!</em>',
@@ -471,6 +473,7 @@
       drawingPromptLabel: 'Prompt: ',
       colorLabel:     'Farbe:',
       thickLabel:     'Stärke:',
+      undoLabel:      'Rückgängig',
       resetLabel:     'Zurücksetzen',
       closure1Msg1:   'Zeit abgelaufen! Wir möchten euch in',
       closure1Msg2:   'Sekunden fotografieren.<br>Wenn du nicht im Bild sein möchtest, geh bitte aus dem Bild.<br><em>Ansonsten: lächeln!</em>',
@@ -502,6 +505,7 @@
     setText('cam-partner-label',     t('partnerLabel'));
     setText('color-label',           t('colorLabel'));
     setText('thickness-label',       t('thickLabel'));
+    setText('undo-label',            t('undoLabel'));
     setText('reset-label',           t('resetLabel'));
     setText('drawing-prompt-label',  t('drawingPromptLabel'));
     setText('prompt-label',          t('promptLabel'));
@@ -754,6 +758,7 @@
     document.getElementById('talk-ask-waiting').style.display = 'none';
     showScreen('idle');
     strokes = [];
+    myStrokeStack = [];
     clearCanvas();
     applyLanguage();
   }
@@ -1009,6 +1014,7 @@
   let currentWidth = 4;
   let strokeIdCounter  = 0;
   let currentStrokeId  = null;
+  let myStrokeStack    = [];   // strokeIds drawn locally, in order — for Undo
 
   const THICKNESS_MIN = 1;
   const THICKNESS_MAX = 30;
@@ -1092,6 +1098,7 @@
 
   function clearCanvas() {
     strokes = [];
+    myStrokeStack = [];
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1121,6 +1128,13 @@
 
   canvas.addEventListener('pointermove', (e) => {
     if (!isDrawing) return;
+
+    // Only a stroke that actually produced a visible segment counts as
+    // undoable — a pointerdown+pointerup with no movement in between
+    // shouldn't occupy an undo slot.
+    if (myStrokeStack[myStrokeStack.length - 1] !== currentStrokeId) {
+      myStrokeStack.push(currentStrokeId);
+    }
 
     const x1 = e.offsetX / canvas.width;
     const y1 = e.offsetY / canvas.height;
@@ -1162,9 +1176,24 @@
   });
   socket.on('clear-owner', (data) => {
     strokes = strokes.filter(s => s.owner !== data.owner);
+    if (data.owner === socket.id) myStrokeStack = [];
     redrawAll();
   });
   socket.on('strokes-sync', (all) => { strokes = all; redrawAll(); });
+  socket.on('undo-stroke', (data) => {
+    strokes = strokes.filter(s => s.strokeId !== data.strokeId);
+    redrawAll();
+  });
+
+  // Removes only the local user's own most recent stroke — never the partner's.
+  function undoLastStroke() {
+    if (isDrawing) return; // avoid undoing mid-stroke
+    const strokeId = myStrokeStack.pop();
+    if (!strokeId) return;
+    strokes = strokes.filter(s => s.strokeId !== strokeId);
+    redrawAll();
+    socket.emit('undo-stroke', { strokeId });
+  }
 
   // ── WebRTC signalling ─────────────────────────────────────────────────────
   let isInitiator = false;
@@ -1233,7 +1262,8 @@
   }
   setThickness(4);
 
-  // ── Reset button ──────────────────────────────────────────────────────────
+  // ── Undo / Reset buttons ──────────────────────────────────────────────────
+  document.getElementById('undoBtn').addEventListener('click', undoLastStroke);
   document.getElementById('resetBtn').addEventListener('click', () => {
     socket.emit('clear-my-drawing');
   });
@@ -1318,6 +1348,7 @@
     if (COLOR_KEYS[key]) { setColor(COLOR_KEYS[key]); return; }
     if (key === 'arrowup')   { setThickness(currentWidth + 2); return; }
     if (key === 'arrowdown') { setThickness(currentWidth - 2); return; }
+    if ((e.ctrlKey || e.metaKey) && key === 'z') { e.preventDefault(); undoLastStroke(); return; }
     if (key === 'r') { socket.emit('clear-my-drawing'); return; }
     if (key === 'g') { socket.emit('gesture', { type: 'like' });    return; }
     if (key === 'h') { socket.emit('gesture', { type: 'dislike' }); return; }

@@ -943,7 +943,7 @@
     const camH   = Math.round(camW * (9 / 16));
     const margin = 14;
 
-    function stamp(src, x, y) {
+    function stamp(src, x, y, label) {
       if (!src) return;
       if (src instanceof HTMLVideoElement && !src.srcObject) return;
       try {
@@ -951,14 +951,29 @@
         c.strokeStyle = 'rgba(255,255,255,0.3)';
         c.lineWidth   = 1;
         c.strokeRect(x, y, camW, camH);
+
+        if (label) {
+          const labelH = Math.max(14, Math.round(camH * 0.22));
+          c.save();
+          c.fillStyle = 'rgba(0,0,0,0.6)';
+          c.fillRect(x, y + camH - labelH, camW, labelH);
+          c.fillStyle    = '#ffffff';
+          c.font         = `${Math.max(10, Math.round(labelH * 0.6))}px "Courier New", monospace`;
+          c.textAlign    = 'center';
+          c.textBaseline = 'middle';
+          c.fillText(label, x + camW / 2, y + camH - labelH / 2);
+          c.restore();
+        }
       } catch (_) {}
     }
 
     // Use pre-captured snapshot for local cam — more reliable than live video
     stamp(localCamSnap || document.getElementById('cam-local'),
-          margin, off.height - margin - camH);
+          margin, off.height - margin - camH,
+          myCity || t('camLabel'));
     stamp(document.getElementById('cam-partner-video'),
-          off.width - margin - camW, off.height - margin - camH);
+          off.width - margin - camW, off.height - margin - camH,
+          partnerCity || t('partnerLabel'));
 
     return off.toDataURL('image/png');
   }

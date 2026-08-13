@@ -133,6 +133,15 @@ function broadcast(event, data) {
   session.clients.forEach(c => c.emit(event, data));
 }
 
+// Tells each client the OTHER client's city name (each kiosk already knows
+// its own from its own URL's ?city=). Re-run whenever the roster changes.
+function broadcastCities() {
+  session.clients.forEach(c => {
+    const partner = session.clients.find(o => o !== c);
+    c.emit('partner-city', { city: partner ? partner._city : null });
+  });
+}
+
 function clearTimers() {
   clearTimeout(session.waitingTimer);
   clearTimeout(session.phaseTimer);
@@ -238,6 +247,7 @@ io.on('connection', (socket) => {
   const loadId   = socket.handshake.query.loadId   || null;
   socket._clientId = clientId;
   socket._loadId   = loadId;
+  socket._city     = socket.handshake.query.city || null;
 
   // Check if this clientId is already in the session
   const existingIdx = clientId
@@ -272,6 +282,7 @@ io.on('connection', (socket) => {
   }
 
   console.log('Tab connected:', socket.id, '| Clients:', session.clients.length);
+  broadcastCities();
 
   // Sync new tab to current state
   const p = session.promptIndex !== null
@@ -395,6 +406,7 @@ io.on('connection', (socket) => {
     // for real leaves, refreshes, and network blips alike; a reconnecting
     // partner re-announces 'camera-ready' and peer-ready rebuilds it cleanly.
     session.clients.forEach(c => c.emit('webrtc-reset'));
+    broadcastCities();
 
     if (session.state !== 'idle') {
       // Short grace period for network blips — if the same loadId reconnects, the

@@ -501,8 +501,7 @@
   function applyLanguage() {
     setText('idle-msg',              t('idleMsg'),              true);
     setText('idle-de',               t('idleDe'),               true);
-    setText('cam-local-label',       t('camLabel'));
-    setText('cam-partner-label',     t('partnerLabel'));
+    updateCamLabels();
     setText('color-label',           t('colorLabel'));
     setText('thickness-label',       t('thickLabel'));
     setText('undo-label',            t('undoLabel'));
@@ -525,6 +524,15 @@
     const waitingMsgEl = document.getElementById('waiting-message');
     if (waitingMsgEl) waitingMsgEl.innerHTML = t(waitingRole === 'initiator' ? 'waitingInitiator' : 'waitingResponder');
     if (currentPrompt) showCurrentPrompt();
+  }
+
+  // City names are proper nouns — shown as-is, not translated. Falls back to
+  // the generic "You" / "Partner" strings when a city isn't known yet (e.g.
+  // no ?city= set, or the partner hasn't connected yet).
+  function updateCamLabels() {
+    setText('cam-local-label',   myCity || t('camLabel'));
+    setText('cam-partner-label', partnerCity || t('partnerLabel'));
+    setText('connection-city',   partnerCity);
   }
 
   // ── Screen switcher ───────────────────────────────────────────────────────
@@ -697,7 +705,11 @@
     return id;
   })();
   const _loadId = Math.random().toString(36).slice(2, 10);
-  const socket = io({ query: { clientId: _clientId, loadId: _loadId } });
+  // Each kiosk is opened with its own ?city= so the two locations can show
+  // real names instead of generic "You" / "Partner" labels.
+  const myCity = new URLSearchParams(location.search).get('city') || '';
+  let partnerCity = '';
+  const socket = io({ query: { clientId: _clientId, loadId: _loadId, city: myCity } });
   let currentPrompt = null;
   let drawingTimerInterval = null;
   let countdownInterval    = null;
@@ -705,6 +717,11 @@
 
   socket.on('full', () => {
     showScreen('full');
+  });
+
+  socket.on('partner-city', ({ city }) => {
+    partnerCity = city || '';
+    updateCamLabels();
   });
 
   // Re-emit camera-ready after any Socket.io reconnect so server can re-gate WebRTC

@@ -430,7 +430,7 @@
         'The person you are seeing, is seeing the same content as you.',
         'Shortly, you will see a prompt. Try to draw the prompt together with your paired partner within the time limit.',
         'For drawing, grab the pen and paint on the black board in front of you.<img src="/images/board.webp" style="display:block;margin:24px auto 0;max-width:min(420px,80%);max-height:220px;object-fit:contain;border-radius:6px;">',
-        'During drawing, you can use the keys to:<br>- Change your drawing color<br>- Change your brush thickness<br>- Undo your last draw. <br>- Reset the drawing (it erases all what "you" have drawn)<img src="/images/keyboard.webp" style="display:block;margin:24px auto 0;max-width:min(420px,80%);max-height:220px;object-fit:contain;border-radius:6px;">'
+        'During drawing, you can use the keys to:<br>- Change your drawing color<br>- Change your brush thickness<br>- Undo your last draw. <br>- Reset the drawing (it erases all what "you" have drawn)<img id="keyboard-cycle-img" src="/images/keyboard1.webp" style="display:block;margin:24px auto 0;max-width:min(420px,80%);max-height:220px;object-fit:contain;border-radius:6px;">'
       ],
       connectionMsg:  'This is your paired partner.',
       connectionSub:  'Your drawing starts shortly.',
@@ -464,7 +464,7 @@
         'Die Person, die du siehst, sieht denselben Inhalt wie du.',
         'Gleich erscheint ein Prompt. Versucht, diesen innerhalb des Zeitlimits gemeinsam zu zeichnen.',
         'Zum Zeichnen: Nimm den Stift und male auf die schwarze Tafel vor dir.<img src="/images/board.webp" style="display:block;margin:24px auto 0;max-width:min(420px,80%);max-height:220px;object-fit:contain;border-radius:6px;">',
-        'Während des Zeichnens kannst du die Tasten benutzen, um:<br>- die Farbe deiner Zeichnung zu ändern.<br>- die Dicke des Pinsels anzupassen.<br>- deinen letzten Strich rückgängig zu machen.<br>- die Zeichnung zurückzusetzen (alles, was "du" gezeichnet hast, wird gelöscht).<img src="/images/keyboard.webp" style="display:block;margin:24px auto 0;max-width:min(420px,80%);max-height:220px;object-fit:contain;border-radius:6px;">'
+        'Während des Zeichnens kannst du die Tasten benutzen, um:<br>- die Farbe deiner Zeichnung zu ändern.<br>- die Dicke des Pinsels anzupassen.<br>- deinen letzten Strich rückgängig zu machen.<br>- die Zeichnung zurückzusetzen (alles, was "du" gezeichnet hast, wird gelöscht).<img id="keyboard-cycle-img" src="/images/keyboard1.webp" style="display:block;margin:24px auto 0;max-width:min(420px,80%);max-height:220px;object-fit:contain;border-radius:6px;">'
       ],
       connectionMsg:  'Das ist dein*e Partner*in.',
       connectionSub:  'Euer Zeichnen beginnt gleich.',
@@ -804,6 +804,27 @@
   // ── Onboarding slides ─────────────────────────────────────────────────────
   const SLIDE_DURATIONS = [12000, 4000, 7000, 9000, 8000];
 
+  // Keyboard slide (the last one) cycles through 5 images, one per key
+  // group, instead of showing a single static image. Durations sum to 12s,
+  // matching that slide's own on-screen time.
+  const KEYBOARD_IMAGES      = ['keyboard1.webp', 'keyboard2.webp', 'keyboard3.webp', 'keyboard4.webp', 'keyboard5.webp'];
+  const KEYBOARD_IMG_DURATIONS = [3000, 2000, 2000, 2000, 3000];
+  let _keyboardCycleTimer = null;
+
+  function startKeyboardCycle() {
+    clearTimeout(_keyboardCycleTimer);
+    let k = 0;
+    function showFrame() {
+      const img = document.getElementById('keyboard-cycle-img');
+      if (!img) return; // slide/screen moved on
+      img.src = '/images/' + KEYBOARD_IMAGES[k];
+      if (k + 1 < KEYBOARD_IMAGES.length) {
+        _keyboardCycleTimer = setTimeout(() => { k++; showFrame(); }, KEYBOARD_IMG_DURATIONS[k]);
+      }
+    }
+    showFrame();
+  }
+
   function enterOnboarding() {
     stopVoiceover();
     _vo[lang].play().catch(() => {});
@@ -823,6 +844,7 @@
         el.innerHTML = slides[i];
         el.classList.add('visible');
         document.querySelectorAll('.prog-dot').forEach((d, j) => d.classList.toggle('active', j === i));
+        if (i === slides.length - 1) startKeyboardCycle();
       }, 200);
       if (i + 1 < slides.length) {
         countdownInterval = setTimeout(() => showSlide(i + 1), SLIDE_DURATIONS[i]);
@@ -1032,8 +1054,10 @@
     clearInterval(drawingTimerInterval);
     clearInterval(countdownInterval);
     clearTimeout(countdownInterval);
+    clearTimeout(_keyboardCycleTimer);
     drawingTimerInterval = null;
     countdownInterval = null;
+    _keyboardCycleTimer = null;
   }
 
   // ── Canvas drawing ────────────────────────────────────────────────────────

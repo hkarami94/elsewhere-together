@@ -171,15 +171,26 @@
     }
     .ctrl-label { font-size: 12px; color: #888; }
     #thickness-preview {
-      width: 44px; height: 44px;
+      width: 90px; height: 44px;
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
-    #thickness-dot {
-      border-radius: 50%;
-      background: #00ff00;
+    /* Fill spans the full min-to-max range, not just the current value, so
+       it's clear both how big the current brush is and how big it can get. */
+    #thickness-bar-track {
+      width: 100%;
+      height: 14px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.06);
       border: 1px solid rgba(255,255,255,0.25);
-      transition: width .1s, height .1s, background .15s, border-color .15s;
+      overflow: hidden;
+      transition: border-color .15s;
+    }
+    #thickness-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: #00ff00;
+      transition: width .1s, background .15s;
     }
 
     /* ── Gesture button strip ── */
@@ -353,7 +364,7 @@
       <div id="color-swatch"></div>
       <span style="width:1px; background:#333; height:24px; margin:0 6px; align-self:center;"></span>
       <span class="ctrl-label" id="thickness-label">Thick:</span>
-      <div id="thickness-preview"><div id="thickness-dot"></div></div>
+      <div id="thickness-preview"><div id="thickness-bar-track"><div id="thickness-bar-fill"></div></div></div>
       <span style="width:1px; background:#333; height:24px; margin:0 6px; align-self:center;"></span>
       <button class="gesture-btn" data-gesture="like"    title="G = Like">👍</button>
       <button class="gesture-btn" data-gesture="dislike" title="H = Dislike">👎</button>
@@ -1276,21 +1287,23 @@
         ? '#888'                    // eraser: visible outline on black canvas
         : '#555';
     }
-    const dot = document.getElementById('thickness-dot');
-    if (!dot) return;
-    dot.style.background    = color;
-    dot.style.borderColor   = color === '#000000'
-      ? 'rgba(255,255,255,0.5)'   // eraser: visible outline on black canvas
-      : 'rgba(255,255,255,0.25)';
+    const fill = document.getElementById('thickness-bar-fill');
+    if (fill) fill.style.background = color;
+    const track = document.getElementById('thickness-bar-track');
+    if (track) {
+      track.style.borderColor = color === '#000000'
+        ? 'rgba(255,255,255,0.5)'   // eraser: visible outline on black canvas
+        : 'rgba(255,255,255,0.25)';
+    }
   }
 
   // ── Thickness display ─────────────────────────────────────────────────────
   function setThickness(val) {
     currentWidth = Math.max(THICKNESS_MIN, Math.min(THICKNESS_MAX, val));
-    const dot = document.getElementById('thickness-dot');
-    if (!dot) return;
-    dot.style.width  = currentWidth + 'px';
-    dot.style.height = currentWidth + 'px';
+    const fill = document.getElementById('thickness-bar-fill');
+    if (!fill) return;
+    const pct = (currentWidth - THICKNESS_MIN) / (THICKNESS_MAX - THICKNESS_MIN) * 100;
+    fill.style.width = pct + '%';
   }
   setThickness(4);
 

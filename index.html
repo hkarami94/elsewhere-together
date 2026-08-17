@@ -160,25 +160,15 @@
       min-height: 48px;
       flex-wrap: wrap;
     }
-    .colorBtn {
+    /* Color/thickness are shown, not clicked — the mini-keypad drives them */
+    #color-swatch {
       width: 36px;
       height: 24px;
       border: 2px solid #555;
       border-radius: 4px;
-      cursor: pointer;
       flex-shrink: 0;
-      transition: transform .1s, border-color .1s;
+      transition: background .15s, border-color .15s;
     }
-    .colorBtn:hover  { border-color: #fff; }
-    .colorBtn.active { border-color: #fff; transform: scale(1.25); }
-    .eraser-btn {
-      background: #222 !important;
-      width: 46px;
-      font-size: 16px;
-      color: #888;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .eraser-btn.active { border-color: #fff; transform: scale(1.25); color: #fff; background: #333 !important; }
     .ctrl-label { font-size: 12px; color: #888; }
     #thickness-preview {
       width: 44px; height: 44px;
@@ -360,14 +350,7 @@
     </div>
     <div id="drawing-bottombar">
       <span class="ctrl-label" id="color-label">Color:</span>
-      <button class="colorBtn active" style="background:#00ff00" data-color="#00ff00" data-key="1" title="1"></button>
-      <button class="colorBtn"        style="background:#0000ff" data-color="#0000ff" data-key="2" title="2"></button>
-      <button class="colorBtn"        style="background:#ff00ff" data-color="#ff00ff" data-key="3" title="3"></button>
-      <button class="colorBtn"        style="background:#ffff00" data-color="#ffff00" data-key="4" title="4"></button>
-      <button class="colorBtn"        style="background:#ff0000" data-color="#ff0000" data-key="5" title="5"></button>
-      <button class="colorBtn"        style="background:#ff8800" data-color="#ff8800" data-key="6" title="6"></button>
-      <button class="colorBtn"        style="background:#ffffff; border-color:#888" data-color="#ffffff" data-key="7" title="7"></button>
-      <button class="colorBtn eraser-btn" data-color="#000000" data-key="8" title="Eraser (8)">✕</button>
+      <div id="color-swatch"></div>
       <span style="width:1px; background:#333; height:24px; margin:0 6px; align-self:center;"></span>
       <span class="ctrl-label" id="thickness-label">Thick:</span>
       <div id="thickness-preview"><div id="thickness-dot"></div></div>
@@ -375,9 +358,6 @@
       <button class="gesture-btn" data-gesture="like"    title="G = Like">👍</button>
       <button class="gesture-btn" data-gesture="dislike" title="H = Dislike">👎</button>
       <button class="gesture-btn" data-gesture="love"    title="J = Love">❤️</button>
-      <span style="width:1px; background:#333; height:24px; margin:0 6px; align-self:center;"></span>
-      <button id="undoBtn" style="background:none;border:1px solid #444;color:#aaa;font-family:inherit;font-size:12px;padding:4px 10px;cursor:pointer;border-radius:4px;" title="Z = Undo my last line">⎌ <span id="undo-label">Undo</span></button>
-      <button id="resetBtn" style="background:none;border:1px solid #444;color:#aaa;font-family:inherit;font-size:12px;padding:4px 10px;cursor:pointer;border-radius:4px;" title="R = Reset my drawing">↺ <span id="reset-label">Reset</span></button>
     </div>
   </div>
 
@@ -439,8 +419,6 @@
       drawingPromptLabel: 'Prompt: ',
       colorLabel:     'Color:',
       thickLabel:     'Thick:',
-      undoLabel:      'Undo',
-      resetLabel:     'Reset',
       closure1Msg1:   'Time is up! We want to take your picture in',
       closure1Msg2:   'seconds.<br>If you don\'t want your picture saved, please go out of frame.<br><em>Otherwise, smile!</em>',
       closure2Title:  'Elsewhere, Together',
@@ -473,8 +451,6 @@
       drawingPromptLabel: 'Prompt: ',
       colorLabel:     'Farbe:',
       thickLabel:     'Stärke:',
-      undoLabel:      'Rückgängig',
-      resetLabel:     'Zurücksetzen',
       closure1Msg1:   'Zeit abgelaufen! Wir möchten euch in',
       closure1Msg2:   'Sekunden fotografieren.<br>Wenn du nicht im Bild sein möchtest, geh bitte aus dem Bild.<br><em>Ansonsten: lächeln!</em>',
       closure2Title:  'Elsewhere, Together',
@@ -504,8 +480,6 @@
     updateCamLabels();
     setText('color-label',           t('colorLabel'));
     setText('thickness-label',       t('thickLabel'));
-    setText('undo-label',            t('undoLabel'));
-    setText('reset-label',           t('resetLabel'));
     setText('drawing-prompt-label',  t('drawingPromptLabel'));
     setText('prompt-label',          t('promptLabel'));
     setText('prompt-sub',            t('promptSub'));
@@ -1292,12 +1266,16 @@
     catch (_) {}
   });
 
-  // ── Color buttons ─────────────────────────────────────────────────────────
+  // ── Color indicator ───────────────────────────────────────────────────────
   function setColor(color) {
     currentColor = color;
-    document.querySelectorAll('.colorBtn').forEach(b => {
-      b.classList.toggle('active', b.dataset.color === color);
-    });
+    const swatch = document.getElementById('color-swatch');
+    if (swatch) {
+      swatch.style.background  = color;
+      swatch.style.borderColor = color === '#000000'
+        ? '#888'                    // eraser: visible outline on black canvas
+        : '#555';
+    }
     const dot = document.getElementById('thickness-dot');
     if (!dot) return;
     dot.style.background    = color;
@@ -1305,10 +1283,6 @@
       ? 'rgba(255,255,255,0.5)'   // eraser: visible outline on black canvas
       : 'rgba(255,255,255,0.25)';
   }
-
-  document.querySelectorAll('.colorBtn').forEach(btn => {
-    btn.addEventListener('click', () => setColor(btn.dataset.color));
-  });
 
   // ── Thickness display ─────────────────────────────────────────────────────
   function setThickness(val) {
@@ -1319,12 +1293,6 @@
     dot.style.height = currentWidth + 'px';
   }
   setThickness(4);
-
-  // ── Undo / Reset buttons ──────────────────────────────────────────────────
-  document.getElementById('undoBtn').addEventListener('click', undoLastStroke);
-  document.getElementById('resetBtn').addEventListener('click', () => {
-    socket.emit('clear-my-drawing');
-  });
 
   // ── Toast helper ──────────────────────────────────────────────────────────
   function showToast(msg, duration = 2000) {

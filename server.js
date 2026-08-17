@@ -213,7 +213,7 @@ function runPhaseSequence() {
     broadcast('phase', { phase: 'connection' });
 
     session.phaseTimer = setTimeout(() => {
-      // Prompt display: 10s
+      // Prompt display: 5s
       session.state = 'prompt';
       broadcast('phase', { phase: 'prompt', prompt: p });
 
@@ -237,7 +237,7 @@ function runPhaseSequence() {
             }, 10000);
           }, 10000);
         }, 240000);
-      }, 10000);
+      }, 5000);
     }, 15000);
   }, 44000);
 }

@@ -421,7 +421,13 @@
         'The person you are seeing, is seeing the same content as you.',
         'Shortly, you will see a prompt. Try to draw the prompt together with your paired partner within the time limit.',
         'For drawing, grab the pen and paint on the black board in front of you.<img src="/images/board.webp" style="display:block;margin:24px auto 0;max-width:min(420px,80%);max-height:220px;object-fit:contain;border-radius:6px;">',
-        'During drawing, you can use the keys to:<br>- Change your drawing color<br>- Change your brush thickness<br>- Undo your last draw. <br>- Reset the drawing (it erases all what "you" have drawn)<img id="keyboard-cycle-img" src="/images/keyboard1.webp" style="display:block;margin:24px auto 0;max-width:min(420px,80%);max-height:220px;object-fit:contain;border-radius:6px;">'
+        'During drawing, you can use the keys to:<div id="keyboard-bullet" style="min-height:1.4em;margin-top:4px;"></div><img id="keyboard-cycle-img" src="/images/keyboard1.webp" style="display:block;margin:24px auto 0;max-width:min(420px,80%);max-height:220px;object-fit:contain;border-radius:6px;">'
+      ],
+      keyboardBullets: [
+        'Change your drawing color',
+        'Change your brush thickness',
+        'Undo your last draw',
+        'Reset the drawing (it erases all what "you" have drawn)'
       ],
       connectionMsg:  'This is your paired partner.',
       connectionSub:  'Your drawing starts shortly.',
@@ -453,7 +459,13 @@
         'Die Person, die du siehst, sieht denselben Inhalt wie du.',
         'Gleich erscheint ein Prompt. Versucht, diesen innerhalb des Zeitlimits gemeinsam zu zeichnen.',
         'Zum Zeichnen: Nimm den Stift und male auf die schwarze Tafel vor dir.<img src="/images/board.webp" style="display:block;margin:24px auto 0;max-width:min(420px,80%);max-height:220px;object-fit:contain;border-radius:6px;">',
-        'Während des Zeichnens kannst du die Tasten benutzen, um:<br>- die Farbe deiner Zeichnung zu ändern.<br>- die Dicke des Pinsels anzupassen.<br>- deinen letzten Strich rückgängig zu machen.<br>- die Zeichnung zurückzusetzen (alles, was "du" gezeichnet hast, wird gelöscht).<img id="keyboard-cycle-img" src="/images/keyboard1.webp" style="display:block;margin:24px auto 0;max-width:min(420px,80%);max-height:220px;object-fit:contain;border-radius:6px;">'
+        'Während des Zeichnens kannst du die Tasten benutzen, um:<div id="keyboard-bullet" style="min-height:1.4em;margin-top:4px;"></div><img id="keyboard-cycle-img" src="/images/keyboard1.webp" style="display:block;margin:24px auto 0;max-width:min(420px,80%);max-height:220px;object-fit:contain;border-radius:6px;">'
+      ],
+      keyboardBullets: [
+        'die Farbe deiner Zeichnung zu ändern',
+        'die Dicke des Pinsels anzupassen',
+        'deinen letzten Strich rückgängig zu machen',
+        'die Zeichnung zurückzusetzen (alles, was "du" gezeichnet hast, wird gelöscht)'
       ],
       connectionMsg:  'Das ist dein*e Partner*in.',
       connectionSub:  'Euer Zeichnen beginnt gleich.',
@@ -798,11 +810,16 @@
 
   function startKeyboardCycle() {
     clearTimeout(_keyboardCycleTimer);
+    const bullets = t('keyboardBullets');
     let k = 0;
     function showFrame() {
       const img = document.getElementById('keyboard-cycle-img');
       if (!img) return; // slide/screen moved on
       img.src = '/images/' + KEYBOARD_IMAGES[k];
+      // keyboard1 (k=0) is the plain overview — no matching bullet yet.
+      // keyboard2-5 (k=1..4) each highlight one key, paired with bullets[0..3].
+      const bulletEl = document.getElementById('keyboard-bullet');
+      if (bulletEl) bulletEl.textContent = k > 0 ? '- ' + bullets[k - 1] : '';
       if (k + 1 < KEYBOARD_IMAGES.length) {
         _keyboardCycleTimer = setTimeout(() => { k++; showFrame(); }, KEYBOARD_IMG_DURATIONS[k]);
       }

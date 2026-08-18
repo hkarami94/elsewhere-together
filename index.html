@@ -799,13 +799,13 @@
   }
 
   // ── Onboarding slides ─────────────────────────────────────────────────────
-  const SLIDE_DURATIONS = [12000, 4000, 7000, 9000, 8000];
+  const SLIDE_DURATIONS = [13000, 5000, 8000, 5000, 17000];
 
   // Keyboard slide (the last one) cycles through 5 images, one per key
-  // group, instead of showing a single static image. Durations sum to 12s,
+  // group, instead of showing a single static image. Durations sum to 17s,
   // matching that slide's own on-screen time.
   const KEYBOARD_IMAGES      = ['keyboard1.webp', 'keyboard2.webp', 'keyboard3.webp', 'keyboard4.webp', 'keyboard5.webp'];
-  const KEYBOARD_IMG_DURATIONS = [3000, 2000, 2000, 2000, 3000];
+  const KEYBOARD_IMG_DURATIONS = [4000, 3000, 3000, 3000, 4000];
   let _keyboardCycleTimer = null;
 
   function startKeyboardCycle() {

@@ -203,7 +203,7 @@ function runPhaseSequence() {
 
   const p = { en: PROMPTS.en[session.promptIndex], de: PROMPTS.de[session.promptIndex] };
 
-  // Onboarding: 54s
+  // Onboarding: 48s
   session.state = 'onboarding';
   broadcast('phase', { phase: 'onboarding' });
 
@@ -239,7 +239,7 @@ function runPhaseSequence() {
         }, 240000);
       }, 5000);
     }, 15000);
-  }, 44000);
+  }, 48000);
 }
 
 io.on('connection', (socket) => {

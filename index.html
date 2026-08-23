@@ -268,18 +268,6 @@
 
     /* ── Talk request / talking ── */
     #talk-ask-buttons { display: flex; gap: 24px; margin-top: 32px; }
-    .talk-btn {
-      background: none;
-      border: 2px solid #555;
-      color: #fff;
-      font-family: inherit;
-      font-size: clamp(16px, 2vw, 22px);
-      padding: 10px 36px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: border-color .15s, color .15s;
-    }
-    .talk-btn:hover  { border-color: #FFE000; color: #FFE000; }
     #talk-ask-waiting { font-size: clamp(14px, 2vw, 20px); color: #aaa; margin-top: 32px; }
     #talk-ask-count   { font-size: clamp(24px, 4vw, 48px); color: #fff; margin-top: 28px; }
     #talking-video {
@@ -410,8 +398,8 @@
     <h1 class="mid-title" id="talk-ask-title">Elsewhere, Together</h1>
     <p class="body-text" id="talk-ask-msg">Would you like to talk to your partner?</p>
     <div id="talk-ask-buttons">
-      <button class="talk-btn" id="talk-yes-btn">Yes</button>
-      <button class="talk-btn" id="talk-no-btn">No</button>
+      <button class="consent-btn yes" id="talk-yes-btn">Yes</button>
+      <button class="consent-btn no" id="talk-no-btn">No</button>
     </div>
     <p id="talk-ask-waiting" style="display:none;">Waiting for your partner...</p>
     <p id="talk-ask-count">15</p>
@@ -1459,6 +1447,13 @@
     if (active === 'screen-closure1') {
       if (key === '1') { respondPhotoConsent(true);  return; }
       if (key === '5') { respondPhotoConsent(false); return; }
+      return;
+    }
+
+    // Talk request — same green (1) / red (5) keys
+    if (active === 'screen-talk-ask') {
+      if (key === '1') { respondTalk(true);  return; }
+      if (key === '5') { respondTalk(false); return; }
       return;
     }
 

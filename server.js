@@ -350,6 +350,12 @@ io.on('connection', (socket) => {
     broadcast('gesture', data);
   });
 
+  // ── Photo consent (closure1) — relay each side's yes/no to the other ──
+  socket.on('photo-consent', ({ consent }) => {
+    const partner = session.clients.find(c => c.id !== socket.id);
+    if (partner) partner.emit('partner-photo-consent', { consent });
+  });
+
   // ── Save artwork ─────────────────────────────────────────────
   socket.on('save-artwork', async ({ image }) => {
     if (!supabase) return;

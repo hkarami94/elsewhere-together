@@ -240,7 +240,23 @@
     }
 
     /* ── Closure ── */
-    #closure1-count { font-size: clamp(40px, 8vw, 100px); color: #FFE000; margin-top: 20px; }
+    #closure1-count { font-size: clamp(24px, 4vw, 48px); color: #fff; margin-top: 28px; }
+    #closure1-buttons { display: flex; gap: 24px; margin-top: 32px; }
+    .consent-btn {
+      background: none;
+      font-family: inherit;
+      font-size: clamp(16px, 2vw, 22px);
+      padding: 10px 36px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: border-color .15s, color .15s, opacity .15s;
+    }
+    .consent-btn.yes { border: 2px solid #2ecc71; color: #2ecc71; }
+    .consent-btn.yes:hover, .consent-btn.yes.selected { background: #2ecc71; color: #111; }
+    .consent-btn.no  { border: 2px solid #e74c3c; color: #e74c3c; }
+    .consent-btn.no:hover,  .consent-btn.no.selected  { background: #e74c3c; color: #111; }
+    .consent-btn:disabled { cursor: default; opacity: .5; }
+    .consent-btn:disabled.selected { opacity: 1; }
     #closure2-canvas-img {
       max-width: 80vw;
       max-height: 55vh;
@@ -374,9 +390,12 @@
 
   <!-- ════════════════════════════════════ CLOSURE 1 ══ -->
   <div class="screen" id="screen-closure1">
-    <p class="body-text" id="closure1-msg1">Time is up! We want to take your picture in</p>
+    <p class="body-text" id="closure1-msg1">Time is up! Can we take your picture and save it as part of this artwork?</p>
+    <div id="closure1-buttons">
+      <button class="consent-btn yes" id="closure1-yes-btn">Yes</button>
+      <button class="consent-btn no" id="closure1-no-btn">No</button>
+    </div>
     <p id="closure1-count">10</p>
-    <p class="body-text" id="closure1-msg2">seconds.<br>If you don't want your picture saved, please go out of frame.<br><em id="closure1-msg3">Otherwise, smile!</em></p>
   </div>
 
   <!-- ════════════════════════════════════ CLOSURE 2 ══ -->
@@ -436,8 +455,7 @@
       drawingPromptLabel: 'Prompt: ',
       colorLabel:     'Color:',
       thickLabel:     'Thick:',
-      closure1Msg1:   'Time is up! We want to take your picture in',
-      closure1Msg2:   'seconds.<br>If you don\'t want your picture saved, please go out of frame.<br><em>Otherwise, smile!</em>',
+      closure1Msg1:   'Time is up! Can we take your picture and save it as part of this artwork?',
       closure2Title:  'Elsewhere, Together',
       closure2Msg:    'This drawing is complete and will be added to the archive.<br>Today the two of you, together, created a piece of art — changing the meaning of distance!',
       camLabel:       'You',
@@ -474,8 +492,7 @@
       drawingPromptLabel: 'Prompt: ',
       colorLabel:     'Farbe:',
       thickLabel:     'Stärke:',
-      closure1Msg1:   'Zeit abgelaufen! Wir möchten euch in',
-      closure1Msg2:   'Sekunden fotografieren.<br>Wenn du nicht im Bild sein möchtest, geh bitte aus dem Bild.<br><em>Ansonsten: lächeln!</em>',
+      closure1Msg1:   'Zeit abgelaufen! Dürfen wir ein Foto von euch aufnehmen und als Teil dieses Kunstwerks speichern?',
       closure2Title:  'Elsewhere, Together',
       closure2Msg:    'Diese Zeichnung ist fertig und wird dem Archiv hinzugefügt.<br>Heute habt ihr zwei zusammen ein Kunstwerk erschaffen — und den Begriff Entfernung neu definiert!',
       camLabel:       'Du',
@@ -509,7 +526,8 @@
     setText('connection-msg',        t('connectionMsg'));
     setText('connection-sub',        t('connectionSub'));
     setText('closure1-msg1',         t('closure1Msg1'));
-    setText('closure1-msg2',         t('closure1Msg2'),         true);
+    setText('closure1-yes-btn',      t('talkYes'));
+    setText('closure1-no-btn',       t('talkNo'));
     setText('closure2-title',        t('closure2Title'));
     setText('closure2-msg',          t('closure2Msg'),          true);
     setText('waiting-lang-hint',     t('waitingHint'),          true);
@@ -711,6 +729,10 @@
   let drawingTimerInterval = null;
   let countdownInterval    = null;
   let waitingRole = 'responder';
+  let myPhotoConsent      = null;
+  let partnerPhotoConsent = null;
+
+  socket.on('partner-photo-consent', ({ consent }) => { partnerPhotoConsent = consent; });
 
   socket.on('full', () => {
     showScreen('full');
@@ -776,6 +798,8 @@
     clearCanvas();
     setColor('#ffffff');
     setThickness(THICKNESS_MIN);
+    myPhotoConsent = null;
+    partnerPhotoConsent = null;
     applyLanguage();
   }
 
@@ -915,9 +939,30 @@
   function enterClosure1() {
     clearInterval(drawingTimerInterval);
     document.getElementById('drawing-timer').classList.remove('urgent');
+    myPhotoConsent = null;
+    const yesBtn = document.getElementById('closure1-yes-btn');
+    const noBtn  = document.getElementById('closure1-no-btn');
+    yesBtn.disabled = false;
+    noBtn.disabled  = false;
+    yesBtn.classList.remove('selected');
+    noBtn.classList.remove('selected');
     showScreen('closure1');
-    startCountdown('closure1-count', 10, () => {});
+    startCountdown('closure1-count', 10, () => {
+      if (myPhotoConsent === null) respondPhotoConsent(false);
+    });
   }
+
+  function respondPhotoConsent(consent) {
+    if (myPhotoConsent !== null) return;
+    myPhotoConsent = consent;
+    socket.emit('photo-consent', { consent });
+    document.getElementById('closure1-yes-btn').disabled = true;
+    document.getElementById('closure1-no-btn').disabled  = true;
+    document.getElementById(consent ? 'closure1-yes-btn' : 'closure1-no-btn').classList.add('selected');
+  }
+
+  document.getElementById('closure1-yes-btn').addEventListener('click', () => respondPhotoConsent(true));
+  document.getElementById('closure1-no-btn').addEventListener('click', () => respondPhotoConsent(false));
 
   // ── Closure II ────────────────────────────────────────────────────────────
   function buildComposite(prompt) {
@@ -967,37 +1012,48 @@
     const camH   = Math.round(camW * (9 / 16));
     const margin = 14;
 
-    function stamp(src, x, y, label) {
+    function drawLabel(x, y, label) {
+      const labelH = Math.max(14, Math.round(camH * 0.22));
+      c.save();
+      c.fillStyle = 'rgba(0,0,0,0.6)';
+      c.fillRect(x, y + camH - labelH, camW, labelH);
+      c.fillStyle    = '#ffffff';
+      c.font         = `${Math.max(10, Math.round(labelH * 0.6))}px "Courier New", monospace`;
+      c.textAlign    = 'center';
+      c.textBaseline = 'middle';
+      c.fillText(label, x + camW / 2, y + camH - labelH / 2);
+      c.restore();
+    }
+
+    function stamp(src, x, y, label, consented) {
+      c.strokeStyle = 'rgba(255,255,255,0.3)';
+      c.lineWidth   = 1;
+
+      if (!consented) {
+        c.fillStyle = '#000000';
+        c.fillRect(x, y, camW, camH);
+        c.strokeRect(x, y, camW, camH);
+        if (label) drawLabel(x, y, label);
+        return;
+      }
+
       if (!src) return;
       if (src instanceof HTMLVideoElement && !src.srcObject) return;
       try {
         c.drawImage(src, x, y, camW, camH);
-        c.strokeStyle = 'rgba(255,255,255,0.3)';
-        c.lineWidth   = 1;
         c.strokeRect(x, y, camW, camH);
-
-        if (label) {
-          const labelH = Math.max(14, Math.round(camH * 0.22));
-          c.save();
-          c.fillStyle = 'rgba(0,0,0,0.6)';
-          c.fillRect(x, y + camH - labelH, camW, labelH);
-          c.fillStyle    = '#ffffff';
-          c.font         = `${Math.max(10, Math.round(labelH * 0.6))}px "Courier New", monospace`;
-          c.textAlign    = 'center';
-          c.textBaseline = 'middle';
-          c.fillText(label, x + camW / 2, y + camH - labelH / 2);
-          c.restore();
-        }
+        if (label) drawLabel(x, y, label);
       } catch (_) {}
     }
 
-    // Use pre-captured snapshot for local cam — more reliable than live video
+    // Use pre-captured snapshot for local cam — more reliable than live video.
+    // No/unresolved consent defaults to blacked-out (privacy-first default).
     stamp(localCamSnap || document.getElementById('cam-local'),
           margin, off.height - margin - camH,
-          myCity || t('camLabel'));
+          myCity || t('camLabel'), myPhotoConsent === true);
     stamp(document.getElementById('cam-partner-video'),
           off.width - margin - camW, off.height - margin - camH,
-          partnerCity || t('partnerLabel'));
+          partnerCity || t('partnerLabel'), partnerPhotoConsent === true);
 
     return off.toDataURL('image/png');
   }
@@ -1395,6 +1451,13 @@
       if (active !== 'screen-idle' && active !== 'screen-waiting') return;
       lang = lang === 'en' ? 'de' : 'en';
       applyLanguage();
+      return;
+    }
+
+    // Photo consent — closure1 screen only
+    if (active === 'screen-closure1') {
+      if (key === 'y') { respondPhotoConsent(true);  return; }
+      if (key === 'n') { respondPhotoConsent(false); return; }
       return;
     }
 

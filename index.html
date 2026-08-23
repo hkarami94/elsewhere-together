@@ -395,7 +395,7 @@
       <button class="consent-btn yes" id="closure1-yes-btn">Yes</button>
       <button class="consent-btn no" id="closure1-no-btn">No</button>
     </div>
-    <p id="closure1-count">10</p>
+    <p id="closure1-count">15</p>
   </div>
 
   <!-- ════════════════════════════════════ CLOSURE 2 ══ -->
@@ -947,7 +947,7 @@
     yesBtn.classList.remove('selected');
     noBtn.classList.remove('selected');
     showScreen('closure1');
-    startCountdown('closure1-count', 10, () => {
+    startCountdown('closure1-count', 15, () => {
       if (myPhotoConsent === null) respondPhotoConsent(false);
     });
   }
@@ -1454,10 +1454,11 @@
       return;
     }
 
-    // Photo consent — closure1 screen only
+    // Photo consent — closure1 screen only. Reuses the physical green (1) /
+    // red (5) color-key buttons on the mini-keypad — no dedicated y/n keys.
     if (active === 'screen-closure1') {
-      if (key === 'y') { respondPhotoConsent(true);  return; }
-      if (key === 'n') { respondPhotoConsent(false); return; }
+      if (key === '1') { respondPhotoConsent(true);  return; }
+      if (key === '5') { respondPhotoConsent(false); return; }
       return;
     }
 

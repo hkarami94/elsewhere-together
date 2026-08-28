@@ -383,7 +383,7 @@
       <button class="consent-btn yes" id="closure1-yes-btn">Yes</button>
       <button class="consent-btn no" id="closure1-no-btn">No</button>
     </div>
-    <p id="closure1-count">15</p>
+    <p id="closure1-count">10</p>
   </div>
 
   <!-- ════════════════════════════════════ CLOSURE 2 ══ -->
@@ -935,7 +935,7 @@
     yesBtn.classList.remove('selected');
     noBtn.classList.remove('selected');
     showScreen('closure1');
-    startCountdown('closure1-count', 15, () => {
+    startCountdown('closure1-count', 10, () => {
       if (myPhotoConsent === null) respondPhotoConsent(false);
     });
   }

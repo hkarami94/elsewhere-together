@@ -223,7 +223,7 @@ function runPhaseSequence() {
         broadcast('phase', { phase: 'drawing', prompt: p });
 
         session.phaseTimer = setTimeout(() => {
-          // Closure I – photo consent: 15s
+          // Closure I – photo consent: 10s
           session.state = 'closure1';
           broadcast('phase', { phase: 'closure1' });
 
@@ -235,7 +235,7 @@ function runPhaseSequence() {
             session.phaseTimer = setTimeout(() => {
               enterTalkAsk();
             }, 10000);
-          }, 15000);
+          }, 10000);
         }, 240000);
       }, 5000);
     }, 8000);

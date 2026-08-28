@@ -208,7 +208,7 @@ function runPhaseSequence() {
   broadcast('phase', { phase: 'onboarding' });
 
   session.phaseTimer = setTimeout(() => {
-    // Connection: 15s
+    // Connection: 8s
     session.state = 'connection';
     broadcast('phase', { phase: 'connection' });
 
@@ -238,7 +238,7 @@ function runPhaseSequence() {
           }, 15000);
         }, 240000);
       }, 5000);
-    }, 15000);
+    }, 8000);
   }, 48000);
 }
 

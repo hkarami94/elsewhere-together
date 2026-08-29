@@ -588,6 +588,12 @@
     love()    { _note(523, 0.32, 0.34); _note(659, 0.32, 0.28); _note(784, 0.32, 0.26); },
     tick()    { _note(1200, 0.04, 0.22, 'square'); },
     buzzer()  { _note(220, 0.24, 0.4, 'triangle'); setTimeout(() => _note(196, 0.34, 0.36, 'triangle'), 180); },
+    partnerStarted() {
+      // Soft sine tone but loud — needs to grab attention across the room
+      // when the partner has started and is waiting on us.
+      _note(440, 0.3, 0.7, 'sine');
+      setTimeout(() => _note(440, 0.3, 0.7, 'sine'), 350);
+    },
     shutter() {
       const a = ac(), buf = a.createBuffer(1, Math.floor(a.sampleRate * 0.07), a.sampleRate);
       const d = buf.getChannelData(0);
@@ -763,6 +769,7 @@
   socket.on('partner-waiting', () => {
     clearAllTimers();
     enterWaiting('responder');
+    SFX.partnerStarted();
   });
 
   // ── Idle ──────────────────────────────────────────────────────────────────

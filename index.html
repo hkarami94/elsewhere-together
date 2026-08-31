@@ -343,7 +343,7 @@
 
   <!-- ── Camera corners ── -->
   <div class="cam-corner" id="cam-local-wrap">
-    <video id="cam-local" autoplay muted playsinline></video>
+    <video id="cam-local" autoplay muted playsinline disablePictureInPicture disableRemotePlayback></video>
     <div class="cam-label" id="cam-local-label">You</div>
   </div>
   <div class="cam-corner" id="cam-partner-wrap">
@@ -351,7 +351,7 @@
       <span style="font-size:28px">📷</span>
       <span>Partner</span>
     </div>
-    <video id="cam-partner-video" autoplay playsinline muted
+    <video id="cam-partner-video" autoplay playsinline muted disablePictureInPicture disableRemotePlayback
            style="display:none;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);"></video>
     <div class="cam-label" id="cam-partner-label">Partner</div>
   </div>
@@ -395,7 +395,7 @@
   <div class="screen" id="screen-connection">
     <p class="body-text" id="connection-msg">This is your paired partner.</p>
     <div id="connection-cam">
-      <video id="connection-video" autoplay muted playsinline></video>
+      <video id="connection-video" autoplay muted playsinline disablePictureInPicture disableRemotePlayback></video>
     </div>
     <p id="connection-city" class="hint"></p>
     <p class="body-text" id="connection-sub" style="margin-top:14px; font-size:clamp(12px,1.5vw,18px); color:#888;">Your drawing starts shortly.</p>
@@ -467,7 +467,7 @@
 
   <!-- ══════════════════════════════════════ TALKING ══ -->
   <div class="screen" id="screen-talking">
-    <video id="talking-video" autoplay playsinline></video>
+    <video id="talking-video" autoplay playsinline disablePictureInPicture disableRemotePlayback></video>
     <p id="talking-msg">You can hear each other now</p>
     <p id="talking-count">45</p>
     <div id="talking-buttons">

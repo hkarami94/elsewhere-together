@@ -333,7 +333,7 @@
       0%   { transform: scale(0.7); opacity: 0; }
       100% { transform: scale(1);   opacity: 1; }
     }
-    #closure2-wrap { position: relative; }
+    #closure2-wrap { display: flex; flex-direction: column; align-items: center; }
     #closure2-canvas-img {
       max-width: 80vw;
       max-height: 55vh;
@@ -342,14 +342,10 @@
       display: block;
     }
     #closure2-msg {
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      font-size: clamp(12px, 1.6vw, 18px);
+      font-size: clamp(14px, 2vw, 22px);
       color: #fff;
-      background: rgba(0, 0, 0, 0.6);
-      padding: 6px 14px;
-      border-radius: 10px 10px 0 0;
-      box-sizing: border-box;
+      margin: 0 0 8px;
+      max-width: 80vw;
     }
 
     /* ── Talk request / talking ── */
@@ -478,8 +474,8 @@
   <!-- ════════════════════════════════════ CLOSURE 2 ══ -->
   <div class="screen" id="screen-closure2">
     <div id="closure2-wrap">
-      <img id="closure2-canvas-img" src="" alt="Your shared drawing" />
       <p id="closure2-msg">You can find your drawing on our archive now. Scan the QR code next to the installation.</p>
+      <img id="closure2-canvas-img" src="" alt="Your shared drawing" />
     </div>
   </div>
 

@@ -139,16 +139,20 @@
 
     /* ── Connection ── */
     #connection-cam {
-      width: min(70vw, 600px);
-      height: min(50vh, 400px);
+      width: min(90vw, 900px);
+      height: min(75vh, 600px);
       background: #111;
       border: 2px solid #333;
+      border-radius: 16px;
       display: flex; align-items: center; justify-content: center;
       overflow: hidden;
       margin-top: 20px;
     }
     #connection-cam video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
     #connection-city { font-size: 14px; color: #888; margin-top: 8px; }
+    /* The partner is already shown big-screen in #connection-cam — the
+       redundant corner copy of their feed is just noise here. */
+    body.connection-active #cam-partner-wrap { display: none; }
 
     /* ── Prompt ── */
     #prompt-label { font-size: clamp(13px, 1.5vw, 18px); color: #888; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; }
@@ -617,6 +621,9 @@
     // screen — on idle and waiting they take over almost the whole screen instead.
     document.body.classList.toggle('idle-active', id === 'idle');
     document.body.classList.toggle('waiting-active', id === 'waiting');
+    // Connection already shows the partner big-screen in #connection-cam —
+    // no need for their feed to also appear in the corner.
+    document.body.classList.toggle('connection-active', id === 'connection');
   }
 
   // ── Webcam ────────────────────────────────────────────────────────────────

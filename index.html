@@ -149,7 +149,9 @@
       margin-top: 20px;
     }
     #connection-cam video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-    #connection-city { font-size: 14px; color: #888; margin-top: 8px; }
+    /* Sized like idle's enlarged language hint, for the same "readable from
+       across the room" treatment. */
+    #connection-city { font-size: clamp(16px, 2vw, 24px); color: #888; margin-top: 12px; }
     /* The partner is already shown big-screen in #connection-cam — the
        redundant corner copy of their feed is just noise here. */
     body.connection-active #cam-partner-wrap { display: none; }

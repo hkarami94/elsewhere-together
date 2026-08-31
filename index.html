@@ -158,9 +158,10 @@
     /* Sized like idle's enlarged language hint, for the same "readable from
        across the room" treatment. */
     #connection-city { font-size: clamp(16px, 2vw, 24px); color: #888; margin-top: 12px; }
-    /* The partner is already shown big-screen in #connection-cam — the
-       redundant corner copy of their feed is just noise here. */
-    body.connection-active #cam-partner-wrap { display: none; }
+    /* The partner is already shown big-screen in #connection-cam / #talking-video —
+       the redundant corner copy of their feed is just noise here. */
+    body.connection-active #cam-partner-wrap,
+    body.talking-active #cam-partner-wrap { display: none; }
 
     /* ── Prompt ── */
     #prompt-label { font-size: clamp(13px, 1.5vw, 18px); color: #888; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; }
@@ -627,9 +628,10 @@
     // screen — on idle and waiting they take over almost the whole screen instead.
     document.body.classList.toggle('idle-active', id === 'idle');
     document.body.classList.toggle('waiting-active', id === 'waiting');
-    // Connection already shows the partner big-screen in #connection-cam —
-    // no need for their feed to also appear in the corner.
+    // Connection and talking already show the partner big-screen — no need
+    // for their feed to also appear in the corner.
     document.body.classList.toggle('connection-active', id === 'connection');
+    document.body.classList.toggle('talking-active', id === 'talking');
   }
 
   // ── Webcam ────────────────────────────────────────────────────────────────

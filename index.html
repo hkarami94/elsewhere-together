@@ -59,6 +59,19 @@
       padding: 2px 4px;
     }
 
+    /* On idle only, the camera feeds take over almost the whole screen —
+       a reserved strip at the top for the title and at the bottom for the
+       rest of the idle text keeps them from being covered. */
+    body.idle-active .cam-corner {
+      width: 47vw;
+      height: 72vh;
+      bottom: 13vh;
+      transition: width .3s, height .3s, bottom .3s;
+    }
+    body.idle-active .cam-label { font-size: clamp(13px, 1.6vw, 20px); padding: 6px 10px; }
+    body.idle-active .cam-corner .cam-placeholder span:first-child { font-size: clamp(32px, 5vw, 64px); }
+    body.idle-active .cam-corner .cam-placeholder span:last-child  { font-size: clamp(13px, 1.6vw, 20px); }
+
     /* ── Typography helpers ── */
     .big-title   { color: #FFE000; font-size: clamp(32px, 7vw, 88px); line-height: 1; }
     .mid-title   { color: #FFE000; font-size: clamp(22px, 4vw, 52px); }
@@ -71,6 +84,14 @@
 
     /* ── Idle ── */
     #screen-idle .de-hint { font-size: 15px; color: #555; margin-top: 50px; }
+    body.idle-active #screen-idle {
+      justify-content: flex-start;
+      padding-top: 3vh;
+    }
+    /* Pushes idle-msg (and de-hint after it) down to the bottom margin,
+       leaving the camera feeds the whole space in between. */
+    body.idle-active #idle-msg { margin-top: auto; padding-bottom: 3vh; }
+    body.idle-active #idle-de  { margin-top: 8px; }
 
     /* ── Waiting ── */
     #waiting-message { font-size: clamp(16px, 2.5vw, 30px); color: #ccc; margin-top: 20px; max-width: 600px; line-height: 1.5; }
@@ -564,6 +585,9 @@
   function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('screen-' + id).classList.add('active');
+    // Camera feeds are normally small fixed corner boxes shared across every
+    // screen — on idle they take over almost the whole screen instead.
+    document.body.classList.toggle('idle-active', id === 'idle');
   }
 
   // ── Webcam ────────────────────────────────────────────────────────────────

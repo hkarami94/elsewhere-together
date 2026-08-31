@@ -126,7 +126,8 @@ let session = {
   promptIndex: null,
   strokes: [],
   cameraReady: new Set(),
-  talkResponses: {}
+  talkResponses: {},
+  talkingEndsAt: null
 };
 
 function broadcast(event, data) {
@@ -156,6 +157,7 @@ function resetToIdle() {
   session.promptIndex = null;
   session.strokes = [];
   session.talkResponses = {};
+  session.talkingEndsAt = null;
   broadcast('phase', { phase: 'idle' });
   // Re-establish WebRTC after session reset — cameras are still running
   if (session.clients.length === 2) {
@@ -192,6 +194,7 @@ function enterTalking() {
   clearTimeout(session.phaseTimer);
   session.state = 'talking';
   broadcast('phase', { phase: 'talking' });
+  session.talkingEndsAt = Date.now() + 45000;
   session.phaseTimer = setTimeout(() => {
     resetToIdle();
   }, 45000);
@@ -354,6 +357,21 @@ io.on('connection', (socket) => {
   socket.on('photo-consent', ({ consent }) => {
     const partner = session.clients.find(c => c.id !== socket.id);
     if (partner) partner.emit('partner-photo-consent', { consent });
+  });
+
+  // ── Talking controls — either side can hang up or add 15s ─────
+  socket.on('talking-hangup', () => {
+    if (session.state === 'talking') resetToIdle();
+  });
+
+  socket.on('talking-extend', () => {
+    if (session.state !== 'talking') return;
+    clearTimeout(session.phaseTimer);
+    session.talkingEndsAt += 15000;
+    session.phaseTimer = setTimeout(() => {
+      resetToIdle();
+    }, Math.max(0, session.talkingEndsAt - Date.now()));
+    broadcast('talking-extended', {});
   });
 
   // ── Save artwork ─────────────────────────────────────────────

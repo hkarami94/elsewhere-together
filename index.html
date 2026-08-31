@@ -281,6 +281,7 @@
     }
     #talking-count { font-size: clamp(24px, 4vw, 48px); color: #fff; margin-top: 24px; }
     #talking-msg   { font-size: clamp(16px, 2.2vw, 26px); color: #FFE000; margin-top: 18px; }
+    #talking-buttons { display: flex; gap: 24px; margin-top: 32px; }
   </style>
 </head>
 <body>
@@ -386,6 +387,7 @@
       <button class="consent-btn no" id="closure1-no-btn">No</button>
     </div>
     <p id="closure1-count">10</p>
+    <p class="body-text" id="closure1-pose-hint" style="display:none;">Get ready — smile!</p>
   </div>
 
   <!-- ════════════════════════════════════ CLOSURE 2 ══ -->
@@ -413,6 +415,10 @@
     <video id="talking-video" autoplay playsinline></video>
     <p id="talking-msg">You can hear each other now</p>
     <p id="talking-count">45</p>
+    <div id="talking-buttons">
+      <button class="consent-btn no"  id="talking-hangup-btn">Hang up</button>
+      <button class="consent-btn yes" id="talking-extend-btn">+15s</button>
+    </div>
   </div>
 
   <!-- ════════════════════════════════════════════════ -->
@@ -448,6 +454,7 @@
       thickLabel:     'Thick:',
       closure1Msg1:   'Time is up! Can we take your picture and save it as part of this artwork?',
       consentHint:    'Press the green or red button to answer.',
+      poseHint:       'Get ready — smile!',
       closure2Title:  'Elsewhere, Together',
       closure2Msg:    'This drawing is complete and will be added to the archive.<br>Today the two of you, together, created a piece of art — changing the meaning of distance!',
       camLabel:       'You',
@@ -457,6 +464,8 @@
       talkNo:         'No',
       talkWaiting:    'Waiting for your partner...',
       talkingMsg:     'You can hear each other now',
+      talkingHangup:  'Hang up',
+      talkingExtend:  '+15s',
     },
     de: {
       idleMsg:          'Willkommen! Drücke <strong>Start</strong> zum Verbinden.',
@@ -486,6 +495,7 @@
       thickLabel:     'Stärke:',
       closure1Msg1:   'Zeit abgelaufen! Dürfen wir ein Foto von euch aufnehmen und als Teil dieses Kunstwerks speichern?',
       consentHint:    'Drücke den grünen oder roten Knopf, um zu antworten.',
+      poseHint:       'Mach dich bereit — lächle!',
       closure2Title:  'Elsewhere, Together',
       closure2Msg:    'Diese Zeichnung ist fertig und wird dem Archiv hinzugefügt.<br>Heute habt ihr zwei zusammen ein Kunstwerk erschaffen — und den Begriff Entfernung neu definiert!',
       camLabel:       'Du',
@@ -495,6 +505,8 @@
       talkNo:         'Nein',
       talkWaiting:    'Warte auf deine*n Partner*in...',
       talkingMsg:     'Ihr könnt euch jetzt hören',
+      talkingHangup:  'Auflegen',
+      talkingExtend:  '+15s',
     }
   };
 
@@ -520,6 +532,7 @@
     setText('connection-sub',        t('connectionSub'));
     setText('closure1-msg1',         t('closure1Msg1'));
     setText('closure1-hint',         t('consentHint'));
+    setText('closure1-pose-hint',    t('poseHint'));
     setText('closure1-yes-btn',      t('talkYes'));
     setText('closure1-no-btn',       t('talkNo'));
     setText('closure2-title',        t('closure2Title'));
@@ -531,6 +544,8 @@
     setText('talk-no-btn',           t('talkNo'));
     setText('talk-ask-waiting',      t('talkWaiting'));
     setText('talking-msg',           t('talkingMsg'));
+    setText('talking-hangup-btn',    t('talkingHangup'));
+    setText('talking-extend-btn',    t('talkingExtend'));
     const waitingMsgEl = document.getElementById('waiting-message');
     if (waitingMsgEl) waitingMsgEl.innerHTML = t(waitingRole === 'initiator' ? 'waitingInitiator' : 'waitingResponder');
     if (currentPrompt) showCurrentPrompt();
@@ -948,9 +963,14 @@
     noBtn.disabled  = false;
     yesBtn.classList.remove('selected');
     noBtn.classList.remove('selected');
+    document.getElementById('closure1-pose-hint').style.display = 'none';
     showScreen('closure1');
     startCountdown('closure1-count', 10, () => {
       if (myPhotoConsent === null) respondPhotoConsent(false);
+    }, (remaining) => {
+      if (remaining === 3 && myPhotoConsent === true) {
+        document.getElementById('closure1-pose-hint').style.display = 'block';
+      }
     });
   }
 
@@ -1099,15 +1119,32 @@
     startCountdown('talking-count', 45, () => {});
   }
 
+  document.getElementById('talking-hangup-btn').addEventListener('click', () => socket.emit('talking-hangup'));
+  document.getElementById('talking-extend-btn').addEventListener('click', () => socket.emit('talking-extend'));
+
+  socket.on('talking-extended', () => extendCountdown('talking-count', 15));
+
   // ── Countdown helper ──────────────────────────────────────────────────────
-  function startCountdown(elId, seconds, onDone) {
-    let remaining = seconds;
-    document.getElementById(elId).textContent = remaining;
+  // Boxed in an object (not a plain closure var) so extendCountdown() can add
+  // time to a countdown that's already running.
+  const _countdownState = { remaining: 0, elId: null };
+  function startCountdown(elId, seconds, onDone, onTick) {
+    _countdownState.elId = elId;
+    _countdownState.remaining = seconds;
+    document.getElementById(elId).textContent = _countdownState.remaining;
     countdownInterval = setInterval(() => {
-      remaining--;
+      _countdownState.remaining--;
+      const remaining = _countdownState.remaining;
       document.getElementById(elId).textContent = remaining;
+      if (onTick) onTick(remaining);
       if (remaining <= 0) { clearInterval(countdownInterval); onDone(); }
     }, 1000);
+  }
+
+  function extendCountdown(elId, extraSeconds) {
+    if (_countdownState.elId !== elId) return;
+    _countdownState.remaining += extraSeconds;
+    document.getElementById(elId).textContent = _countdownState.remaining;
   }
 
   function clearAllTimers() {
@@ -1468,6 +1505,13 @@
     if (active === 'screen-talk-ask') {
       if (key === '1') { respondTalk(true);  return; }
       if (key === '5') { respondTalk(false); return; }
+      return;
+    }
+
+    // Talking (open mic) — same green (1) / red (5) keys
+    if (active === 'screen-talking') {
+      if (key === '1') { socket.emit('talking-extend'); return; }
+      if (key === '5') { socket.emit('talking-hangup'); return; }
       return;
     }
 

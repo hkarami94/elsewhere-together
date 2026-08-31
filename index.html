@@ -1186,7 +1186,9 @@
     if (document.getElementById('screen-drawing').classList.contains('active')) resizeCanvas();
   });
 
-  // Remote segments: fill a circle at the joint to cover the previous end-cap
+  // Draws one segment (local or remote) — fills a circle at the joint to
+  // cover the previous segment's end-cap, so a multi-segment stroke reads
+  // as one continuous line instead of a chain of visible round caps.
   function drawSegment(seg) {
     const x0 = seg.x0 * canvas.width,  y0 = seg.y0 * canvas.height;
     const x1 = seg.x1 * canvas.width,  y1 = seg.y1 * canvas.height;
@@ -1239,16 +1241,6 @@
       ctx.stroke();
       ctx.restore();
     }
-
-    // If a stroke is in progress, restart the open path so drawing can continue
-    if (isDrawing && currentStrokeId) {
-      ctx.strokeStyle = currentColor;
-      ctx.lineWidth   = currentWidth;
-      ctx.lineCap  = 'round';
-      ctx.lineJoin = 'round';
-      ctx.beginPath();
-      ctx.moveTo(lastX * canvas.width, lastY * canvas.height);
-    }
   }
 
   function clearCanvas() {
@@ -1259,7 +1251,11 @@
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // Local drawing — single continuous open path from pointerdown to pointerup.
+  // Local drawing — rendered segment-by-segment via drawSegment(), same as
+  // remote strokes, so live drawing and post-redraw (undo/resize/resync)
+  // produce pixel-identical width. (Previously this kept one continuous open
+  // path and re-stroked it whole on every move, which visibly thickened
+  // lines over the length of a stroke due to repeated anti-aliased overlap.)
   // Pointer Events (not mouse events) so pen tablets like the Huion register
   // tip presses correctly — pen input reports as pointerType 'pen' and isn't
   // guaranteed to fire legacy mousedown/mouseup, even though hover/tracking
@@ -1272,13 +1268,6 @@
     currentStrokeId = socket.id + '_' + strokeIdCounter;
     lastX = e.offsetX / canvas.width;
     lastY = e.offsetY / canvas.height;
-
-    ctx.strokeStyle = currentColor;
-    ctx.lineWidth   = currentWidth;
-    ctx.lineCap  = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(e.offsetX, e.offsetY);
   });
 
   canvas.addEventListener('pointermove', (e) => {
@@ -1304,10 +1293,7 @@
     };
     strokes.push(seg);
     socket.emit('draw', seg);
-
-    // Extend the open path — no new beginPath means no isolated end-caps at joints
-    ctx.lineTo(e.offsetX, e.offsetY);
-    ctx.stroke();
+    drawSegment(seg);
 
     lastX = x1;
     lastY = y1;
@@ -1319,15 +1305,6 @@
   socket.on('draw', (seg) => {
     strokes.push(seg);
     drawSegment(seg);
-    // drawSegment calls beginPath(), wiping the local path — restore it if mid-stroke
-    if (isDrawing) {
-      ctx.strokeStyle = currentColor;
-      ctx.lineWidth   = currentWidth;
-      ctx.lineCap     = 'round';
-      ctx.lineJoin    = 'round';
-      ctx.beginPath();
-      ctx.moveTo(lastX * canvas.width, lastY * canvas.height);
-    }
   });
   socket.on('clear-owner', (data) => {
     strokes = strokes.filter(s => s.owner !== data.owner);

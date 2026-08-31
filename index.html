@@ -497,8 +497,7 @@
       keyboardBullets: [
         'Change the color of your brush',
         'Change the thickness of your brush',
-        'Undo your last line',
-        'Erase your part of the drawing'
+        'Undo your last line'
       ],
       connectionMsg:  'This is your paired partner.',
       connectionSub:  'Your drawing starts shortly.',
@@ -538,8 +537,7 @@
       keyboardBullets: [
         'die Farbe deiner Zeichnung zu ändern',
         'die Dicke deines Pinsels anzupassen',
-        'deinen letzten Strich rückgängig zu machen',
-        'deinen Teil der Zeichnung zu löschen'
+        'deinen letzten Strich rückgängig zu machen'
       ],
       connectionMsg:  'Das ist dein*e Partner*in.',
       connectionSub:  'Euer Zeichnen beginnt gleich.',
@@ -902,13 +900,13 @@
   }
 
   // ── Onboarding slides ─────────────────────────────────────────────────────
-  const SLIDE_DURATIONS = [13000, 5000, 8000, 5000, 17000];
+  const SLIDE_DURATIONS = [13000, 5000, 8000, 5000, 14000];
 
-  // Keyboard slide (the last one) cycles through 5 images, one per key
-  // group, instead of showing a single static image. Durations sum to 17s,
+  // Keyboard slide (the last one) cycles through 4 images, one per key
+  // group, instead of showing a single static image. Durations sum to 14s,
   // matching that slide's own on-screen time.
-  const KEYBOARD_IMAGES      = ['keyboard1.webp', 'keyboard2.webp', 'keyboard3.webp', 'keyboard4.webp', 'keyboard5.webp'];
-  const KEYBOARD_IMG_DURATIONS = [4000, 3000, 3000, 3000, 4000];
+  const KEYBOARD_IMAGES      = ['keyboard1.webp', 'keyboard2.webp', 'keyboard3.webp', 'keyboard4.webp'];
+  const KEYBOARD_IMG_DURATIONS = [4000, 3000, 3000, 4000];
   let _keyboardCycleTimer = null;
 
   function startKeyboardCycle() {
@@ -920,7 +918,7 @@
       if (!img) return; // slide/screen moved on
       img.src = '/images/' + KEYBOARD_IMAGES[k];
       // keyboard1 (k=0) is the plain overview — no matching bullet yet.
-      // keyboard2-5 (k=1..4) each highlight one key, paired with bullets[0..3].
+      // keyboard2-4 (k=1..3) each highlight one key, paired with bullets[0..2].
       const bulletEl = document.getElementById('keyboard-bullet');
       if (bulletEl) bulletEl.textContent = k > 0 ? '- ' + bullets[k - 1] : '';
       if (k + 1 < KEYBOARD_IMAGES.length) {

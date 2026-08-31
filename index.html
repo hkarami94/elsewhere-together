@@ -66,8 +66,14 @@
     body.idle-active .cam-corner,
     body.waiting-active .cam-corner {
       width: 47vw;
-      transition: width .3s, height .3s, bottom .3s;
+      transition: width .3s, height .3s, bottom .3s, left .3s, right .3s;
     }
+    /* Width (47vw) + this 2vw edge margin on each side leaves an equal 2vw
+       gap between the two cameras too — left, middle, and right all match. */
+    body.idle-active #cam-local-wrap,
+    body.waiting-active #cam-local-wrap   { left: 2vw; }
+    body.idle-active #cam-partner-wrap,
+    body.waiting-active #cam-partner-wrap { right: 2vw; }
     body.idle-active .cam-corner    { height: 66vh; bottom: 18vh; }
     /* Waiting's footer is taller than idle's — it also has the big countdown
        number, and (as the "someone is waiting" responder) can be a two-line

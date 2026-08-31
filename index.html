@@ -333,15 +333,24 @@
       0%   { transform: scale(0.7); opacity: 0; }
       100% { transform: scale(1);   opacity: 1; }
     }
+    #closure2-wrap { position: relative; }
     #closure2-canvas-img {
       max-width: 80vw;
       max-height: 55vh;
       border: 2px solid #333;
       border-radius: 12px;
-      margin-top: 20px;
       display: block;
     }
-    #closure2-msg { font-size: clamp(14px, 2vw, 22px); color: #ccc; margin-top: 16px; max-width: 600px; }
+    #closure2-msg {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      font-size: clamp(12px, 1.6vw, 18px);
+      color: #fff;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 6px 14px;
+      border-radius: 10px 10px 0 0;
+      box-sizing: border-box;
+    }
 
     /* ── Talk request / talking ── */
     #talk-ask-buttons { display: flex; gap: 24px; margin-top: 32px; }
@@ -468,9 +477,10 @@
 
   <!-- ════════════════════════════════════ CLOSURE 2 ══ -->
   <div class="screen" id="screen-closure2">
-    <p class="mid-title" id="closure2-title">Elsewhere, Together</p>
-    <img id="closure2-canvas-img" src="" alt="Your shared drawing" />
-    <p id="closure2-msg">This drawing is complete and will be added to the archive.<br>Today the two of you, together, created a piece of art — changing the meaning of distance!</p>
+    <div id="closure2-wrap">
+      <img id="closure2-canvas-img" src="" alt="Your shared drawing" />
+      <p id="closure2-msg">You can find your drawing on our archive now. Scan the QR code next to the installation.</p>
+    </div>
   </div>
 
   <!-- ═══════════════════════════════════ TALK ASK ══ -->
@@ -531,8 +541,7 @@
       consentYesBtn:  'Yes (Green Button)',
       consentNoBtn:   'No (Red Button)',
       poseHint:       'Get ready — smile!',
-      closure2Title:  'Elsewhere, Together',
-      closure2Msg:    'This drawing is complete and will be added to the archive.<br>Today the two of you, together, created a piece of art — changing the meaning of distance!',
+      closure2Msg:    'You can find your drawing on our archive now. Scan the QR code next to the installation.',
       camLabel:       'You',
       partnerLabel:   'Your Partner',
       talkAskMsg:     'Would you like to talk to your partner?',
@@ -572,8 +581,7 @@
       consentYesBtn:  'Ja (Grüner Knopf)',
       consentNoBtn:   'Nein (Roter Knopf)',
       poseHint:       'Mach dich bereit — lächle!',
-      closure2Title:  'Elsewhere, Together',
-      closure2Msg:    'Diese Zeichnung ist fertig und wird dem Archiv hinzugefügt.<br>Heute habt ihr zwei zusammen ein Kunstwerk erschaffen — und den Begriff Entfernung neu definiert!',
+      closure2Msg:    'Ihr findet eure Zeichnung jetzt in unserem Archiv. Scannt den QR-Code neben der Installation.',
       camLabel:       'Du',
       partnerLabel:   'Dein*e Partner*in',
       talkAskMsg:     'Möchtest du mit deinem/deiner Partner*in sprechen?',
@@ -610,8 +618,7 @@
     setText('closure1-pose-hint',    t('poseHint'));
     setText('closure1-yes-btn',      t('consentYesBtn'));
     setText('closure1-no-btn',       t('consentNoBtn'));
-    setText('closure2-title',        t('closure2Title'));
-    setText('closure2-msg',          t('closure2Msg'),          true);
+    setText('closure2-msg',          t('closure2Msg'));
     setText('waiting-lang-hint',     t('waitingHint'),          true);
     setText('talk-ask-msg',          t('talkAskMsg'));
     setText('talk-yes-btn',          t('consentYesBtn'));

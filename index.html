@@ -79,6 +79,7 @@
     .countdown   { font-size: clamp(28px, 5vw, 64px); color: #fff; margin-top: 28px; }
     .hint        { font-size: 14px; color: #555; margin-top: 40px; }
     .start-hint  { font-size: clamp(14px, 2vw, 22px); color: #aaa; margin-top: 32px; animation: blink 2.5s infinite; }
+    .start-key   { color: #FFE000; font-size: 1.4em; text-transform: uppercase; }
 
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
 
@@ -341,7 +342,7 @@
   <!-- ════════════════════════════════════════ IDLE ══ -->
   <div class="screen active" id="screen-idle">
     <h1 class="big-title" id="idle-title">Elsewhere, Together</h1>
-    <p class="start-hint" id="idle-msg">Welcome! Press <strong>S</strong> to connect.</p>
+    <p class="start-hint" id="idle-msg">Welcome! Press <strong class="start-key">Start</strong> to connect.</p>
     <p class="de-hint" id="idle-de">(Für Deutsch, drücke die Taste <strong>L</strong>)</p>
   </div>
 
@@ -452,7 +453,7 @@
   // ── Language strings ──────────────────────────────────────────────────────
   const LANG = {
     en: {
-      idleMsg:          'Welcome! Press <strong>Start</strong> to connect.',
+      idleMsg:          'Welcome! Press <strong class="start-key">Start</strong> to connect.',
       idleDe:           '(Für Deutsch, drücke die Taste <strong>EN/DE</strong>)',
       waitingInitiator: 'Waiting for someone to join...',
       waitingResponder: 'Someone is waiting for you.<br>Press <strong>Start</strong> to connect.',
@@ -493,7 +494,7 @@
       talkingExtend:  '+15s',
     },
     de: {
-      idleMsg:          'Willkommen! Drücke <strong>Start</strong> zum Verbinden.',
+      idleMsg:          'Willkommen! Drücke <strong class="start-key">Start</strong> zum Verbinden.',
       idleDe:           '(For English, press <strong>EN/DE</strong>)',
       waitingInitiator: 'Warte darauf, dass jemand beitritt...',
       waitingResponder: 'Jemand wartet auf dich.<br>Drücke <strong>Start</strong> zum Verbinden.',

@@ -303,7 +303,6 @@
     /* ── Closure ── */
     #closure1-count { font-size: clamp(24px, 4vw, 48px); color: #fff; margin-top: 28px; }
     #closure1-buttons { display: flex; gap: 24px; margin-top: 32px; }
-    .consent-hint { font-size: 13px; color: #888; margin-top: 10px; }
     .consent-btn {
       background: none;
       font-family: inherit;
@@ -458,7 +457,6 @@
   <!-- ════════════════════════════════════ CLOSURE 1 ══ -->
   <div class="screen" id="screen-closure1">
     <p class="body-text" id="closure1-msg1">Time is up! Can we take your picture and save it as part of this artwork?</p>
-    <p class="consent-hint" id="closure1-hint">Press the green or red button to answer.</p>
     <div id="closure1-buttons">
       <button class="consent-btn yes" id="closure1-yes-btn">Yes</button>
       <button class="consent-btn no" id="closure1-no-btn">No</button>
@@ -479,7 +477,6 @@
   <div class="screen" id="screen-talk-ask">
     <h1 class="mid-title" id="talk-ask-title">Elsewhere, Together</h1>
     <p class="body-text" id="talk-ask-msg">Would you like to talk to your partner?</p>
-    <p class="consent-hint" id="talk-ask-hint">Press the green or red button to answer.</p>
     <div id="talk-ask-buttons">
       <button class="consent-btn yes" id="talk-yes-btn">Yes</button>
       <button class="consent-btn no" id="talk-no-btn">No</button>
@@ -531,7 +528,8 @@
       colorLabel:     'Color:',
       thickLabel:     'Thick:',
       closure1Msg1:   'Time is up! Can we take your picture and save it as part of this artwork?',
-      consentHint:    'Press the green or red button to answer.',
+      consentYesBtn:  'Yes (Green Button)',
+      consentNoBtn:   'No (Red Button)',
       poseHint:       'Get ready — smile!',
       closure2Title:  'Elsewhere, Together',
       closure2Msg:    'This drawing is complete and will be added to the archive.<br>Today the two of you, together, created a piece of art — changing the meaning of distance!',
@@ -571,7 +569,8 @@
       colorLabel:     'Farbe:',
       thickLabel:     'Stärke:',
       closure1Msg1:   'Zeit abgelaufen! Dürfen wir ein Foto von euch aufnehmen und als Teil dieses Kunstwerks speichern?',
-      consentHint:    'Drücke den grünen oder roten Knopf, um zu antworten.',
+      consentYesBtn:  'Ja (Grüner Knopf)',
+      consentNoBtn:   'Nein (Roter Knopf)',
       poseHint:       'Mach dich bereit — lächle!',
       closure2Title:  'Elsewhere, Together',
       closure2Msg:    'Diese Zeichnung ist fertig und wird dem Archiv hinzugefügt.<br>Heute habt ihr zwei zusammen ein Kunstwerk erschaffen — und den Begriff Entfernung neu definiert!',
@@ -608,17 +607,15 @@
     setText('connection-msg',        t('connectionMsg'));
     setText('connection-sub',        t('connectionSub'));
     setText('closure1-msg1',         t('closure1Msg1'));
-    setText('closure1-hint',         t('consentHint'));
     setText('closure1-pose-hint',    t('poseHint'));
-    setText('closure1-yes-btn',      t('talkYes'));
-    setText('closure1-no-btn',       t('talkNo'));
+    setText('closure1-yes-btn',      t('consentYesBtn'));
+    setText('closure1-no-btn',       t('consentNoBtn'));
     setText('closure2-title',        t('closure2Title'));
     setText('closure2-msg',          t('closure2Msg'),          true);
     setText('waiting-lang-hint',     t('waitingHint'),          true);
     setText('talk-ask-msg',          t('talkAskMsg'));
-    setText('talk-ask-hint',         t('consentHint'));
-    setText('talk-yes-btn',          t('talkYes'));
-    setText('talk-no-btn',           t('talkNo'));
+    setText('talk-yes-btn',          t('consentYesBtn'));
+    setText('talk-no-btn',           t('consentNoBtn'));
     setText('talk-ask-waiting',      t('talkWaiting'));
     setText('talking-msg',           t('talkingMsg'));
     setText('talking-hangup-btn',    t('talkingHangup'));
